@@ -5,3 +5,7 @@ target/
 .DS_Store
 *.log
 .env.local
+circuits/build/*.ptau
+circuits/build/**/*.zkey
+*.zkey
+*.ptau
