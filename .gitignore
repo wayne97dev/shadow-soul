@@ -5,7 +5,14 @@ target/
 .DS_Store
 *.log
 .env.local
-circuits/build/*.ptau
-circuits/build/**/*.zkey
-*.zkey
 *.ptau
+*.zkey
+*.rlib
+*.rmeta
+*.dylib
+*.o
+*.a
+*.wasm
+sdk/node_modules/
+app/node_modules/
+circuits/build/
