@@ -1,0 +1,338 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Shadow Soul - Logo Preview</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    
+    body {
+      font-family: 'Inter', -apple-system, sans-serif;
+      background: linear-gradient(135deg, #0a0a12 0%, #1a1a2e 100%);
+      min-height: 100vh;
+      padding: 40px 20px;
+      color: white;
+    }
+    
+    h1 {
+      text-align: center;
+      margin-bottom: 10px;
+      font-size: 32px;
+      background: linear-gradient(135deg, #a855f7, #7c3aed);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+    
+    p.subtitle {
+      text-align: center;
+      color: rgba(168, 85, 247, 0.6);
+      margin-bottom: 50px;
+    }
+    
+    .logos {
+      display: flex;
+      justify-content: center;
+      gap: 40px;
+      flex-wrap: wrap;
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+    
+    .logo-card {
+      text-align: center;
+    }
+    
+    .logo-card h3 {
+      margin-bottom: 20px;
+      color: rgba(255,255,255,0.8);
+      font-weight: 500;
+    }
+    
+    .logo-container {
+      width: 280px;
+      height: 280px;
+      border-radius: 24px;
+      overflow: hidden;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+      transition: transform 0.3s, box-shadow 0.3s;
+    }
+    
+    .logo-container:hover {
+      transform: scale(1.05);
+      box-shadow: 0 30px 80px rgba(139, 92, 246, 0.3);
+    }
+    
+    .logo-container svg {
+      width: 100%;
+      height: 100%;
+    }
+    
+    .sizes {
+      margin-top: 60px;
+      text-align: center;
+    }
+    
+    .sizes h2 {
+      color: rgba(255,255,255,0.8);
+      margin-bottom: 30px;
+      font-weight: 500;
+    }
+    
+    .size-row {
+      display: flex;
+      justify-content: center;
+      align-items: flex-end;
+      gap: 30px;
+      flex-wrap: wrap;
+    }
+    
+    .size-item {
+      text-align: center;
+    }
+    
+    .size-item span {
+      display: block;
+      margin-top: 10px;
+      color: rgba(168, 85, 247, 0.6);
+      font-size: 12px;
+    }
+    
+    .size-item .logo-small {
+      border-radius: 12px;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.4);
+    }
+  </style>
+</head>
+<body>
+  <h1>Shadow Soul Logo</h1>
+  <p class="subtitle">Scegli la versione che preferisci</p>
+  
+  <div class="logos">
+    <!-- Version 1 -->
+    <div class="logo-card">
+      <h3>Versione 1</h3>
+      <div class="logo-container">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 400">
+          <defs>
+            <radialGradient id="bgGrad" cx="50%" cy="50%" r="70%">
+              <stop offset="0%" stop-color="#7c3aed"/>
+              <stop offset="100%" stop-color="#4c1d95"/>
+            </radialGradient>
+            <linearGradient id="ghostGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+              <stop offset="0%" stop-color="#374151"/>
+              <stop offset="50%" stop-color="#1f2937"/>
+              <stop offset="100%" stop-color="#111827"/>
+            </linearGradient>
+            <linearGradient id="ghostHighlight" x1="0%" y1="0%" x2="100%" y2="100%">
+              <stop offset="0%" stop-color="#4b5563"/>
+              <stop offset="100%" stop-color="#1f2937"/>
+            </linearGradient>
+            <filter id="eyeGlow" x="-50%" y="-50%" width="200%" height="200%">
+              <feGaussianBlur stdDeviation="8" result="blur"/>
+              <feMerge>
+                <feMergeNode in="blur"/>
+                <feMergeNode in="blur"/>
+                <feMergeNode in="SourceGraphic"/>
+              </feMerge>
+            </filter>
+            <filter id="ghostGlow" x="-20%" y="-20%" width="140%" height="140%">
+              <feGaussianBlur stdDeviation="5" result="blur"/>
+              <feMerge>
+                <feMergeNode in="blur"/>
+                <feMergeNode in="SourceGraphic"/>
+              </feMerge>
+            </filter>
+            <filter id="shadow" x="-20%" y="-20%" width="140%" height="140%">
+              <feDropShadow dx="0" dy="10" stdDeviation="15" flood-color="#000" flood-opacity="0.5"/>
+            </filter>
+          </defs>
+          <rect width="400" height="400" fill="url(#bgGrad)"/>
+          <circle cx="200" cy="200" r="180" fill="none" stroke="rgba(255,255,255,0.03)" stroke-width="40"/>
+          <circle cx="200" cy="200" r="120" fill="none" stroke="rgba(255,255,255,0.02)" stroke-width="30"/>
+          <g filter="url(#shadow)">
+            <path d="M 200 60 C 120 60, 80 120, 80 180 L 80 280 C 80 290, 85 300, 95 300 C 105 300, 115 285, 125 285 C 135 285, 140 310, 155 310 C 170 310, 175 285, 190 285 C 205 285, 210 315, 225 315 C 240 315, 245 290, 260 290 C 275 290, 280 310, 295 310 C 310 310, 320 295, 320 280 L 320 180 C 320 120, 280 60, 200 60 Z" fill="url(#ghostGrad)" filter="url(#ghostGlow)"/>
+            <path d="M 200 65 C 130 65, 90 120, 90 175 L 90 200 C 90 180, 100 100, 180 80 C 200 75, 200 65, 200 65 Z" fill="url(#ghostHighlight)" opacity="0.4"/>
+            <path d="M 95 180 C 95 140, 120 90, 170 75 C 140 95, 110 140, 105 190 L 95 180 Z" fill="#6b7280" opacity="0.3"/>
+          </g>
+          <g filter="url(#eyeGlow)">
+            <ellipse cx="150" cy="175" rx="28" ry="35" fill="#0f172a"/>
+            <ellipse cx="150" cy="175" rx="20" ry="28" fill="#c4b5fd"/>
+            <ellipse cx="150" cy="175" rx="14" ry="20" fill="#e9d5ff"/>
+            <ellipse cx="150" cy="170" rx="8" ry="10" fill="#ffffff"/>
+            <ellipse cx="250" cy="175" rx="28" ry="35" fill="#0f172a"/>
+            <ellipse cx="250" cy="175" rx="20" ry="28" fill="#c4b5fd"/>
+            <ellipse cx="250" cy="175" rx="14" ry="20" fill="#e9d5ff"/>
+            <ellipse cx="250" cy="170" rx="8" ry="10" fill="#ffffff"/>
+          </g>
+          <path d="M 115 140 Q 150 155, 175 145" stroke="#1f2937" stroke-width="8" fill="none" stroke-linecap="round"/>
+          <path d="M 285 140 Q 250 155, 225 145" stroke="#1f2937" stroke-width="8" fill="none" stroke-linecap="round"/>
+          <path d="M 170 230 Q 200 245, 230 230" stroke="#111827" stroke-width="4" fill="none" stroke-linecap="round" opacity="0.5"/>
+        </svg>
+      </div>
+    </div>
+
+    <!-- Version 2 -->
+    <div class="logo-card">
+      <h3>Versione 2</h3>
+      <div class="logo-container">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 400">
+          <defs>
+            <radialGradient id="bgGrad2" cx="50%" cy="40%" r="70%">
+              <stop offset="0%" stop-color="#8b5cf6"/>
+              <stop offset="60%" stop-color="#6d28d9"/>
+              <stop offset="100%" stop-color="#4c1d95"/>
+            </radialGradient>
+            <linearGradient id="ghostBody" x1="0%" y1="0%" x2="0%" y2="100%">
+              <stop offset="0%" stop-color="#4b5563"/>
+              <stop offset="40%" stop-color="#374151"/>
+              <stop offset="100%" stop-color="#1f2937"/>
+            </linearGradient>
+            <filter id="glow2" x="-100%" y="-100%" width="300%" height="300%">
+              <feGaussianBlur stdDeviation="6" result="blur"/>
+              <feMerge>
+                <feMergeNode in="blur"/>
+                <feMergeNode in="blur"/>
+                <feMergeNode in="SourceGraphic"/>
+              </feMerge>
+            </filter>
+            <filter id="dropShadow2">
+              <feDropShadow dx="0" dy="8" stdDeviation="12" flood-color="#1e1b4b" flood-opacity="0.6"/>
+            </filter>
+          </defs>
+          <rect width="400" height="400" fill="url(#bgGrad2)"/>
+          <ellipse cx="200" cy="180" rx="100" ry="80" fill="#a78bfa" opacity="0.1"/>
+          <g filter="url(#dropShadow2)">
+            <path d="M 200 50 C 100 50, 60 130, 60 200 L 60 300 Q 60 320, 80 320 Q 100 320, 100 300 Q 100 330, 130 330 Q 160 330, 160 300 Q 160 340, 200 340 Q 240 340, 240 300 Q 240 330, 270 330 Q 300 330, 300 300 Q 300 320, 320 320 Q 340 320, 340 300 L 340 200 C 340 130, 300 50, 200 50 Z" fill="url(#ghostBody)"/>
+            <path d="M 200 55 C 120 55, 80 120, 75 180 C 75 140, 100 80, 160 60 C 180 55, 200 55, 200 55 Z" fill="#6b7280" opacity="0.4"/>
+            <path d="M 80 200 C 80 150, 110 90, 170 65 C 130 100, 95 160, 85 220 L 80 200 Z" fill="#9ca3af" opacity="0.2"/>
+          </g>
+          <g filter="url(#glow2)">
+            <ellipse cx="145" cy="180" rx="35" ry="45" fill="#111827"/>
+            <ellipse cx="145" cy="180" rx="22" ry="32" fill="#a78bfa"/>
+            <ellipse cx="145" cy="180" rx="15" ry="22" fill="#c4b5fd"/>
+            <ellipse cx="145" cy="175" rx="8" ry="12" fill="#f5f3ff"/>
+            <ellipse cx="148" cy="172" rx="4" ry="5" fill="#ffffff"/>
+            <ellipse cx="255" cy="180" rx="35" ry="45" fill="#111827"/>
+            <ellipse cx="255" cy="180" rx="22" ry="32" fill="#a78bfa"/>
+            <ellipse cx="255" cy="180" rx="15" ry="22" fill="#c4b5fd"/>
+            <ellipse cx="255" cy="175" rx="8" ry="12" fill="#f5f3ff"/>
+            <ellipse cx="258" cy="172" rx="4" ry="5" fill="#ffffff"/>
+          </g>
+          <path d="M 100 135 L 170 155" stroke="#1f2937" stroke-width="12" stroke-linecap="round"/>
+          <path d="M 300 135 L 230 155" stroke="#1f2937" stroke-width="12" stroke-linecap="round"/>
+        </svg>
+      </div>
+    </div>
+
+    <!-- Version 3 -->
+    <div class="logo-card">
+      <h3>Versione 3</h3>
+      <div class="logo-container">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 400">
+          <defs>
+            <radialGradient id="bg3" cx="50%" cy="50%" r="70%">
+              <stop offset="0%" stop-color="#7c3aed"/>
+              <stop offset="100%" stop-color="#3b0764"/>
+            </radialGradient>
+            <linearGradient id="ghost3" x1="30%" y1="0%" x2="70%" y2="100%">
+              <stop offset="0%" stop-color="#374151"/>
+              <stop offset="30%" stop-color="#1f2937"/>
+              <stop offset="100%" stop-color="#030712"/>
+            </linearGradient>
+            <radialGradient id="eyeGlow3" cx="50%" cy="40%" r="50%">
+              <stop offset="0%" stop-color="#ffffff"/>
+              <stop offset="40%" stop-color="#e9d5ff"/>
+              <stop offset="100%" stop-color="#a78bfa"/>
+            </radialGradient>
+            <filter id="glow3" x="-50%" y="-50%" width="200%" height="200%">
+              <feGaussianBlur stdDeviation="10" result="blur"/>
+              <feMerge>
+                <feMergeNode in="blur"/>
+                <feMergeNode in="blur"/>
+                <feMergeNode in="SourceGraphic"/>
+              </feMerge>
+            </filter>
+            <filter id="shadow3">
+              <feDropShadow dx="0" dy="10" stdDeviation="20" flood-color="#000" flood-opacity="0.5"/>
+            </filter>
+          </defs>
+          <rect width="400" height="400" fill="url(#bg3)"/>
+          <ellipse cx="200" cy="200" rx="120" ry="100" fill="#8b5cf6" opacity="0.15"/>
+          <g filter="url(#shadow3)">
+            <path d="M 200 40 C 90 40, 50 120, 50 190 C 50 220, 55 260, 60 290 C 65 310, 75 330, 90 330 C 105 330, 110 310, 125 310 C 140 310, 145 340, 165 340 C 185 340, 190 315, 200 315 C 210 315, 215 340, 235 340 C 255 340, 260 310, 275 310 C 290 310, 295 330, 310 330 C 325 330, 335 310, 340 290 C 345 260, 350 220, 350 190 C 350 120, 310 40, 200 40 Z" fill="url(#ghost3)"/>
+            <path d="M 200 45 C 100 45, 65 115, 60 180 C 60 160, 80 80, 180 55 C 190 52, 200 50, 200 45 Z" fill="#4b5563" opacity="0.5"/>
+            <path d="M 70 190 C 70 130, 110 70, 180 50 C 120 80, 85 140, 75 200 C 72 195, 70 190, 70 190 Z" fill="#6b7280" opacity="0.4"/>
+            <ellipse cx="200" cy="200" rx="100" ry="110" fill="#030712" opacity="0.3"/>
+          </g>
+          <g filter="url(#glow3)">
+            <path d="M 110 175 Q 130 145, 170 165 Q 175 200, 155 220 Q 120 215, 110 175 Z" fill="#0f172a"/>
+            <path d="M 118 178 Q 135 155, 165 170 Q 168 198, 152 212 Q 125 208, 118 178 Z" fill="url(#eyeGlow3)"/>
+            <ellipse cx="145" cy="185" rx="10" ry="12" fill="#ffffff" opacity="0.9"/>
+            <path d="M 290 175 Q 270 145, 230 165 Q 225 200, 245 220 Q 280 215, 290 175 Z" fill="#0f172a"/>
+            <path d="M 282 178 Q 265 155, 235 170 Q 232 198, 248 212 Q 275 208, 282 178 Z" fill="url(#eyeGlow3)"/>
+            <ellipse cx="255" cy="185" rx="10" ry="12" fill="#ffffff" opacity="0.9"/>
+          </g>
+          <path d="M 175 240 Q 200 255 225 240" stroke="#111827" stroke-width="3" fill="none" opacity="0.4" stroke-linecap="round"/>
+        </svg>
+      </div>
+    </div>
+  </div>
+
+  <!-- Size variations -->
+  <div class="sizes">
+    <h2>Versione 3 - Varie dimensioni</h2>
+    <div class="size-row">
+      <div class="size-item">
+        <svg class="logo-small" width="128" height="128" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 400">
+          <defs>
+            <radialGradient id="bg3s" cx="50%" cy="50%" r="70%"><stop offset="0%" stop-color="#7c3aed"/><stop offset="100%" stop-color="#3b0764"/></radialGradient>
+            <linearGradient id="ghost3s" x1="30%" y1="0%" x2="70%" y2="100%"><stop offset="0%" stop-color="#374151"/><stop offset="30%" stop-color="#1f2937"/><stop offset="100%" stop-color="#030712"/></linearGradient>
+            <radialGradient id="eyeGlow3s" cx="50%" cy="40%" r="50%"><stop offset="0%" stop-color="#ffffff"/><stop offset="40%" stop-color="#e9d5ff"/><stop offset="100%" stop-color="#a78bfa"/></radialGradient>
+            <filter id="glow3s" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="10" result="blur"/><feMerge><feMergeNode in="blur"/><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+          </defs>
+          <rect width="400" height="400" fill="url(#bg3s)"/>
+          <ellipse cx="200" cy="200" rx="120" ry="100" fill="#8b5cf6" opacity="0.15"/>
+          <path d="M 200 40 C 90 40, 50 120, 50 190 C 50 220, 55 260, 60 290 C 65 310, 75 330, 90 330 C 105 330, 110 310, 125 310 C 140 310, 145 340, 165 340 C 185 340, 190 315, 200 315 C 210 315, 215 340, 235 340 C 255 340, 260 310, 275 310 C 290 310, 295 330, 310 330 C 325 330, 335 310, 340 290 C 345 260, 350 220, 350 190 C 350 120, 310 40, 200 40 Z" fill="url(#ghost3s)"/>
+          <g filter="url(#glow3s)">
+            <path d="M 110 175 Q 130 145, 170 165 Q 175 200, 155 220 Q 120 215, 110 175 Z" fill="#0f172a"/>
+            <path d="M 118 178 Q 135 155, 165 170 Q 168 198, 152 212 Q 125 208, 118 178 Z" fill="url(#eyeGlow3s)"/>
+            <ellipse cx="145" cy="185" rx="10" ry="12" fill="#ffffff" opacity="0.9"/>
+            <path d="M 290 175 Q 270 145, 230 165 Q 225 200, 245 220 Q 280 215, 290 175 Z" fill="#0f172a"/>
+            <path d="M 282 178 Q 265 155, 235 170 Q 232 198, 248 212 Q 275 208, 282 178 Z" fill="url(#eyeGlow3s)"/>
+            <ellipse cx="255" cy="185" rx="10" ry="12" fill="#ffffff" opacity="0.9"/>
+          </g>
+        </svg>
+        <span>128x128</span>
+      </div>
+      <div class="size-item">
+        <svg class="logo-small" width="64" height="64" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 400">
+          <defs>
+            <radialGradient id="bg3m" cx="50%" cy="50%" r="70%"><stop offset="0%" stop-color="#7c3aed"/><stop offset="100%" stop-color="#3b0764"/></radialGradient>
+            <linearGradient id="ghost3m" x1="30%" y1="0%" x2="70%" y2="100%"><stop offset="0%" stop-color="#374151"/><stop offset="30%" stop-color="#1f2937"/><stop offset="100%" stop-color="#030712"/></linearGradient>
+            <radialGradient id="eyeGlow3m" cx="50%" cy="40%" r="50%"><stop offset="0%" stop-color="#ffffff"/><stop offset="40%" stop-color="#e9d5ff"/><stop offset="100%" stop-color="#a78bfa"/></radialGradient>
+          </defs>
+          <rect width="400" height="400" fill="url(#bg3m)"/>
+          <path d="M 200 40 C 90 40, 50 120, 50 190 C 50 220, 55 260, 60 290 C 65 310, 75 330, 90 330 C 105 330, 110 310, 125 310 C 140 310, 145 340, 165 340 C 185 340, 190 315, 200 315 C 210 315, 215 340, 235 340 C 255 340, 260 310, 275 310 C 290 310, 295 330, 310 330 C 325 330, 335 310, 340 290 C 345 260, 350 220, 350 190 C 350 120, 310 40, 200 40 Z" fill="url(#ghost3m)"/>
+          <path d="M 118 178 Q 135 155, 165 170 Q 168 198, 152 212 Q 125 208, 118 178 Z" fill="url(#eyeGlow3m)"/>
+          <path d="M 282 178 Q 265 155, 235 170 Q 232 198, 248 212 Q 275 208, 282 178 Z" fill="url(#eyeGlow3m)"/>
+        </svg>
+        <span>64x64</span>
+      </div>
+      <div class="size-item">
+        <svg class="logo-small" width="32" height="32" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 400">
+          <defs>
+            <radialGradient id="bg3x" cx="50%" cy="50%" r="70%"><stop offset="0%" stop-color="#7c3aed"/><stop offset="100%" stop-color="#3b0764"/></radialGradient>
+            <linearGradient id="ghost3x" x1="30%" y1="0%" x2="70%" y2="100%"><stop offset="0%" stop-color="#374151"/><stop offset="30%" stop-color="#1f2937"/><stop offset="100%" stop-color="#030712"/></linearGradient>
+          </defs>
+          <rect width="400" height="400" fill="url(#bg3x)"/>
+          <path d="M 200 40 C 90 40, 50 120, 50 190 C 50 220, 55 260, 60 290 C 65 310, 75 330, 90 330 C 105 330, 110 310, 125 310 C 140 310, 145 340, 165 340 C 185 340, 190 315, 200 315 C 210 315, 215 340, 235 340 C 255 340, 260 310, 275 310 C 290 310, 295 330, 310 330 C 325 330, 335 310, 340 290 C 345 260, 350 220, 350 190 C 350 120, 310 40, 200 40 Z" fill="url(#ghost3x)"/>
+          <ellipse cx="145" cy="185" rx="20" ry="25" fill="#c4b5fd"/>
+          <ellipse cx="255" cy="185" rx="20" ry="25" fill="#c4b5fd"/>
+        </svg>
+        <span>32x32</span>
+      </div>
+    </div>
+  </div>
+</body>
+</html>
