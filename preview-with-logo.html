@@ -1,0 +1,1124 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Shadow Soul - Privacy Suite for Solana</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    :root {
+      --purple-400: #c084fc;
+      --purple-500: #a855f7;
+      --purple-600: #9333ea;
+      --purple-700: #7c3aed;
+      --violet-500: #8b5cf6;
+      --violet-700: #6d28d9;
+    }
+
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+      background: linear-gradient(135deg, #0a0a12 0%, #050508 50%, #0c0515 100%);
+      color: #ffffff;
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+
+    /* Particle Background */
+    .particles {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      pointer-events: none;
+      z-index: 0;
+      background: 
+        radial-gradient(circle at 20% 80%, rgba(139, 92, 246, 0.08) 0%, transparent 50%),
+        radial-gradient(circle at 80% 20%, rgba(168, 85, 247, 0.08) 0%, transparent 50%),
+        radial-gradient(circle at 40% 40%, rgba(124, 58, 237, 0.05) 0%, transparent 40%);
+    }
+
+    /* Header */
+    header {
+      position: sticky;
+      top: 0;
+      z-index: 50;
+      backdrop-filter: blur(20px);
+      background: rgba(0, 0, 0, 0.4);
+      border-bottom: 1px solid rgba(139, 92, 246, 0.1);
+    }
+
+    .header-content {
+      max-width: 1280px;
+      margin: 0 auto;
+      padding: 12px 24px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .logo {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      text-decoration: none;
+    }
+
+    .logo-icon {
+      width: 44px;
+      height: 44px;
+      border-radius: 12px;
+      overflow: hidden;
+      box-shadow: 0 0 20px rgba(139, 92, 246, 0.4);
+    }
+
+    .logo-icon img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+
+    .logo-text {
+      display: flex;
+      align-items: baseline;
+      gap: 6px;
+    }
+
+    .logo-text .shadow {
+      font-size: 22px;
+      font-weight: 900;
+      background: linear-gradient(135deg, var(--purple-400), var(--purple-600));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    .logo-text .soul {
+      font-size: 22px;
+      font-weight: 700;
+      color: white;
+    }
+
+    nav {
+      display: flex;
+      align-items: center;
+      gap: 32px;
+    }
+
+    nav a {
+      color: rgba(192, 132, 252, 0.6);
+      text-decoration: none;
+      font-size: 14px;
+      font-weight: 500;
+      transition: color 0.3s;
+    }
+
+    nav a:hover {
+      color: white;
+    }
+
+    .connect-btn {
+      background: linear-gradient(135deg, var(--purple-600), var(--violet-700));
+      color: white;
+      border: none;
+      padding: 10px 20px;
+      border-radius: 12px;
+      font-weight: 600;
+      font-size: 14px;
+      cursor: pointer;
+      box-shadow: 0 4px 15px rgba(139, 92, 246, 0.3);
+      transition: all 0.3s;
+    }
+
+    .connect-btn:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 20px rgba(139, 92, 246, 0.4);
+    }
+
+    /* Hero Section */
+    .hero {
+      position: relative;
+      text-align: center;
+      padding: 80px 24px 60px;
+      z-index: 10;
+    }
+
+    .hero-logo {
+      width: 180px;
+      height: 180px;
+      margin: 0 auto 40px;
+      border-radius: 40px;
+      overflow: hidden;
+      box-shadow: 0 0 80px rgba(139, 92, 246, 0.5);
+      animation: float 6s ease-in-out infinite;
+    }
+
+    .hero-logo img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+
+    @keyframes float {
+      0%, 100% { transform: translateY(0); }
+      50% { transform: translateY(-15px); }
+    }
+
+    h1 {
+      font-size: clamp(48px, 10vw, 96px);
+      font-weight: 900;
+      margin-bottom: 16px;
+      letter-spacing: -2px;
+    }
+
+    h1 .gradient {
+      background: linear-gradient(135deg, var(--purple-400), var(--purple-600));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    .subtitle {
+      font-size: 20px;
+      color: rgba(192, 132, 252, 0.6);
+      margin-bottom: 24px;
+      font-weight: 300;
+    }
+
+    .feature-pills {
+      display: flex;
+      justify-content: center;
+      gap: 12px;
+      flex-wrap: wrap;
+      margin-bottom: 40px;
+    }
+
+    .pill {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 10px 20px;
+      background: rgba(139, 92, 246, 0.1);
+      border: 1px solid rgba(139, 92, 246, 0.2);
+      border-radius: 100px;
+      color: var(--purple-400);
+      font-size: 14px;
+    }
+
+    .pill svg {
+      width: 16px;
+      height: 16px;
+      stroke: currentColor;
+      fill: none;
+      stroke-width: 2;
+    }
+
+    .cta-btn {
+      background: linear-gradient(135deg, var(--purple-600), var(--violet-700));
+      color: white;
+      border: none;
+      padding: 16px 40px;
+      border-radius: 14px;
+      font-weight: 700;
+      font-size: 18px;
+      cursor: pointer;
+      box-shadow: 0 4px 20px rgba(139, 92, 246, 0.4);
+      transition: all 0.3s;
+    }
+
+    .cta-btn:hover {
+      transform: translateY(-3px);
+      box-shadow: 0 8px 30px rgba(139, 92, 246, 0.5);
+    }
+
+    /* Stats */
+    .stats {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 16px;
+      max-width: 900px;
+      margin: 0 auto 80px;
+      padding: 0 24px;
+      position: relative;
+      z-index: 10;
+    }
+
+    @media (max-width: 768px) {
+      .stats {
+        grid-template-columns: repeat(2, 1fr);
+      }
+      nav {
+        display: none;
+      }
+    }
+
+    .stat-card {
+      background: linear-gradient(135deg, rgba(139, 92, 246, 0.05), rgba(0, 0, 0, 0.4));
+      border: 1px solid rgba(139, 92, 246, 0.1);
+      border-radius: 16px;
+      padding: 24px;
+      text-align: center;
+      backdrop-filter: blur(20px);
+      transition: all 0.3s;
+    }
+
+    .stat-card:hover {
+      border-color: rgba(139, 92, 246, 0.3);
+      transform: translateY(-2px);
+    }
+
+    .stat-icon {
+      width: 32px;
+      height: 32px;
+      margin: 0 auto 12px;
+      color: var(--purple-500);
+    }
+
+    .stat-icon svg {
+      width: 100%;
+      height: 100%;
+      stroke: currentColor;
+      fill: none;
+      stroke-width: 2;
+    }
+
+    .stat-value {
+      font-size: 28px;
+      font-weight: 700;
+      color: white;
+      margin-bottom: 4px;
+    }
+
+    .stat-label {
+      font-size: 13px;
+      color: rgba(192, 132, 252, 0.4);
+    }
+
+    /* Main App Card */
+    .app-section {
+      max-width: 900px;
+      margin: 0 auto 80px;
+      padding: 0 24px;
+      position: relative;
+      z-index: 10;
+    }
+
+    .tabs {
+      display: flex;
+      justify-content: center;
+      gap: 8px;
+      margin-bottom: 24px;
+    }
+
+    .tab {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 12px 24px;
+      border-radius: 12px;
+      font-weight: 600;
+      font-size: 14px;
+      cursor: pointer;
+      transition: all 0.3s;
+      border: none;
+      background: transparent;
+      color: rgba(192, 132, 252, 0.6);
+    }
+
+    .tab:hover {
+      color: white;
+      background: rgba(139, 92, 246, 0.1);
+    }
+
+    .tab.active {
+      background: linear-gradient(135deg, var(--purple-600), var(--violet-700));
+      color: white;
+      box-shadow: 0 4px 15px rgba(139, 92, 246, 0.3);
+    }
+
+    .tab svg {
+      width: 18px;
+      height: 18px;
+      stroke: currentColor;
+      fill: none;
+      stroke-width: 2;
+    }
+
+    .glass-card {
+      background: linear-gradient(135deg, rgba(139, 92, 246, 0.05), rgba(0, 0, 0, 0.4));
+      border: 1px solid rgba(139, 92, 246, 0.1);
+      border-radius: 24px;
+      padding: 32px;
+      backdrop-filter: blur(20px);
+    }
+
+    .mode-toggle {
+      display: flex;
+      background: rgba(0, 0, 0, 0.3);
+      border-radius: 12px;
+      padding: 4px;
+      margin-bottom: 24px;
+    }
+
+    .mode-btn {
+      flex: 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      padding: 12px;
+      border-radius: 10px;
+      font-weight: 600;
+      font-size: 14px;
+      cursor: pointer;
+      border: none;
+      background: transparent;
+      color: rgba(192, 132, 252, 0.6);
+      transition: all 0.3s;
+    }
+
+    .mode-btn.active {
+      background: linear-gradient(135deg, var(--purple-600), var(--violet-700));
+      color: white;
+    }
+
+    .mode-btn svg {
+      width: 18px;
+      height: 18px;
+      stroke: currentColor;
+      fill: none;
+      stroke-width: 2;
+    }
+
+    .amount-grid {
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      gap: 8px;
+      margin-bottom: 24px;
+    }
+
+    @media (max-width: 640px) {
+      .amount-grid {
+        grid-template-columns: repeat(3, 1fr);
+      }
+    }
+
+    .amount-btn {
+      padding: 14px;
+      border-radius: 12px;
+      font-weight: 600;
+      font-size: 14px;
+      cursor: pointer;
+      border: 1px solid rgba(139, 92, 246, 0.2);
+      background: rgba(0, 0, 0, 0.3);
+      color: rgba(192, 132, 252, 0.6);
+      transition: all 0.3s;
+    }
+
+    .amount-btn:hover {
+      border-color: rgba(139, 92, 246, 0.5);
+      color: white;
+    }
+
+    .amount-btn.active {
+      background: var(--purple-600);
+      border-color: var(--purple-600);
+      color: white;
+    }
+
+    .info-box {
+      background: rgba(139, 92, 246, 0.1);
+      border: 1px solid rgba(139, 92, 246, 0.2);
+      border-radius: 16px;
+      padding: 20px;
+      margin-bottom: 24px;
+      display: flex;
+      gap: 16px;
+    }
+
+    .info-box svg {
+      width: 24px;
+      height: 24px;
+      stroke: var(--purple-400);
+      fill: none;
+      stroke-width: 2;
+      flex-shrink: 0;
+      margin-top: 2px;
+    }
+
+    .info-box p {
+      font-size: 14px;
+      color: rgba(192, 132, 252, 0.8);
+      line-height: 1.6;
+    }
+
+    .info-box strong {
+      color: white;
+    }
+
+    .action-btn {
+      width: 100%;
+      background: linear-gradient(135deg, var(--purple-600), var(--violet-700));
+      color: white;
+      border: none;
+      padding: 18px;
+      border-radius: 14px;
+      font-weight: 700;
+      font-size: 16px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      box-shadow: 0 4px 20px rgba(139, 92, 246, 0.3);
+      transition: all 0.3s;
+    }
+
+    .action-btn:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 25px rgba(139, 92, 246, 0.4);
+    }
+
+    .action-btn svg {
+      width: 20px;
+      height: 20px;
+      stroke: currentColor;
+      fill: none;
+      stroke-width: 2;
+    }
+
+    .pool-stats {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 16px;
+      margin-top: 32px;
+      padding-top: 24px;
+      border-top: 1px solid rgba(139, 92, 246, 0.1);
+    }
+
+    .pool-stat {
+      text-align: center;
+    }
+
+    .pool-stat-value {
+      font-size: 24px;
+      font-weight: 700;
+      color: white;
+    }
+
+    .pool-stat-label {
+      font-size: 12px;
+      color: rgba(192, 132, 252, 0.4);
+      margin-top: 4px;
+    }
+
+    /* Features Section */
+    .features {
+      padding: 80px 24px;
+      position: relative;
+      z-index: 10;
+    }
+
+    .features::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: linear-gradient(to bottom, transparent, rgba(139, 92, 246, 0.03), transparent);
+      pointer-events: none;
+    }
+
+    .section-title {
+      text-align: center;
+      margin-bottom: 16px;
+    }
+
+    .section-title h2 {
+      font-size: 40px;
+      font-weight: 700;
+      background: linear-gradient(135deg, var(--purple-400), var(--purple-600));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    .section-subtitle {
+      text-align: center;
+      color: rgba(192, 132, 252, 0.4);
+      margin-bottom: 60px;
+      font-size: 16px;
+    }
+
+    .features-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 24px;
+      max-width: 1100px;
+      margin: 0 auto;
+    }
+
+    @media (max-width: 900px) {
+      .features-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .feature-card {
+      background: linear-gradient(135deg, rgba(139, 92, 246, 0.05), rgba(0, 0, 0, 0.4));
+      border: 1px solid rgba(139, 92, 246, 0.1);
+      border-radius: 20px;
+      padding: 32px;
+      backdrop-filter: blur(20px);
+      transition: all 0.5s;
+    }
+
+    .feature-card:hover {
+      border-color: rgba(139, 92, 246, 0.3);
+      transform: translateY(-5px);
+      box-shadow: 0 20px 40px rgba(139, 92, 246, 0.1);
+    }
+
+    .feature-icon {
+      width: 64px;
+      height: 64px;
+      background: linear-gradient(135deg, var(--purple-600), var(--violet-700));
+      border-radius: 16px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-bottom: 24px;
+      box-shadow: 0 8px 20px rgba(139, 92, 246, 0.3);
+    }
+
+    .feature-icon svg {
+      width: 32px;
+      height: 32px;
+      stroke: white;
+      fill: none;
+      stroke-width: 2;
+    }
+
+    .feature-card h3 {
+      font-size: 24px;
+      font-weight: 700;
+      margin-bottom: 12px;
+      color: white;
+    }
+
+    .feature-card p {
+      font-size: 15px;
+      color: rgba(192, 132, 252, 0.6);
+      line-height: 1.7;
+      margin-bottom: 20px;
+    }
+
+    .feature-tags {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+
+    .feature-tag {
+      font-size: 12px;
+      padding: 6px 14px;
+      background: rgba(139, 92, 246, 0.1);
+      border: 1px solid rgba(139, 92, 246, 0.2);
+      border-radius: 100px;
+      color: var(--purple-400);
+    }
+
+    /* Tech Section */
+    .tech-section {
+      padding: 60px 24px;
+      position: relative;
+      z-index: 10;
+    }
+
+    .tech-grid {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: 12px;
+      max-width: 800px;
+      margin: 0 auto;
+    }
+
+    .tech-badge {
+      padding: 12px 20px;
+      background: rgba(0, 0, 0, 0.4);
+      border: 1px solid rgba(139, 92, 246, 0.1);
+      border-radius: 10px;
+      color: rgba(192, 132, 252, 0.6);
+      font-size: 14px;
+      transition: all 0.3s;
+    }
+
+    .tech-badge:hover {
+      border-color: rgba(139, 92, 246, 0.3);
+      color: var(--purple-400);
+    }
+
+    /* CTA Section */
+    .cta-section {
+      text-align: center;
+      padding: 100px 24px;
+      position: relative;
+      z-index: 10;
+    }
+
+    .cta-section h2 {
+      font-size: clamp(32px, 6vw, 48px);
+      font-weight: 700;
+      margin-bottom: 16px;
+    }
+
+    .cta-section h2 .gradient {
+      background: linear-gradient(135deg, var(--purple-400), var(--purple-600));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    .cta-section p {
+      color: rgba(192, 132, 252, 0.6);
+      font-size: 18px;
+      margin-bottom: 32px;
+      max-width: 500px;
+      margin-left: auto;
+      margin-right: auto;
+    }
+
+    /* Footer */
+    footer {
+      border-top: 1px solid rgba(139, 92, 246, 0.1);
+      padding: 60px 24px;
+      background: rgba(0, 0, 0, 0.2);
+      position: relative;
+      z-index: 10;
+    }
+
+    .footer-content {
+      max-width: 1100px;
+      margin: 0 auto;
+      display: grid;
+      grid-template-columns: 2fr 1fr 1fr;
+      gap: 40px;
+    }
+
+    @media (max-width: 768px) {
+      .footer-content {
+        grid-template-columns: 1fr;
+        text-align: center;
+      }
+    }
+
+    .footer-brand {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 16px;
+    }
+
+    @media (max-width: 768px) {
+      .footer-brand {
+        justify-content: center;
+      }
+    }
+
+    .footer-brand-icon {
+      width: 36px;
+      height: 36px;
+      border-radius: 10px;
+      overflow: hidden;
+    }
+
+    .footer-brand-icon img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+
+    .footer-brand span {
+      font-weight: 700;
+      color: white;
+      font-size: 18px;
+    }
+
+    .footer-desc {
+      color: rgba(192, 132, 252, 0.4);
+      font-size: 14px;
+      line-height: 1.7;
+      max-width: 400px;
+    }
+
+    .footer-section h4 {
+      font-weight: 600;
+      color: white;
+      margin-bottom: 16px;
+    }
+
+    .footer-links {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .footer-links a {
+      color: rgba(192, 132, 252, 0.4);
+      text-decoration: none;
+      font-size: 14px;
+      transition: color 0.3s;
+    }
+
+    .footer-links a:hover {
+      color: var(--purple-400);
+    }
+
+    .social-links {
+      display: flex;
+      gap: 12px;
+    }
+
+    @media (max-width: 768px) {
+      .social-links {
+        justify-content: center;
+      }
+    }
+
+    .social-link {
+      width: 40px;
+      height: 40px;
+      background: rgba(139, 92, 246, 0.1);
+      border: 1px solid rgba(139, 92, 246, 0.2);
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: rgba(192, 132, 252, 0.6);
+      transition: all 0.3s;
+      text-decoration: none;
+    }
+
+    .social-link:hover {
+      background: rgba(139, 92, 246, 0.2);
+      border-color: rgba(139, 92, 246, 0.3);
+      color: white;
+    }
+
+    .social-link svg {
+      width: 18px;
+      height: 18px;
+      fill: currentColor;
+    }
+
+    .footer-bottom {
+      max-width: 1100px;
+      margin: 40px auto 0;
+      padding-top: 24px;
+      border-top: 1px solid rgba(139, 92, 246, 0.1);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 16px;
+    }
+
+    @media (max-width: 768px) {
+      .footer-bottom {
+        justify-content: center;
+        text-align: center;
+      }
+    }
+
+    .footer-bottom p {
+      color: rgba(192, 132, 252, 0.4);
+      font-size: 13px;
+    }
+
+    .footer-bottom .powered {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      color: rgba(192, 132, 252, 0.4);
+      font-size: 13px;
+    }
+
+    .footer-bottom .powered span.highlight {
+      color: var(--purple-400);
+    }
+  </style>
+</head>
+<body>
+  <div class="particles"></div>
+
+  <!-- Header -->
+  <header>
+    <div class="header-content">
+      <a href="#" class="logo">
+        <div class="logo-icon">
+          <img src="https://i.ibb.co/7JqZg6q/lucid-origin-Spooky-ghost-character-logo-dark-charcoal-gray-ghost-figure-with-hood-like-top-m-0.jpg" alt="Shadow Soul">
+        </div>
+        <div class="logo-text">
+          <span class="shadow">SHADOW</span>
+          <span class="soul">SOUL</span>
+        </div>
+      </a>
+      <nav>
+        <a href="#">Home</a>
+        <a href="#">Docs</a>
+        <a href="#">FAQ</a>
+        <a href="#">GitHub</a>
+      </nav>
+      <button class="connect-btn">Connect Wallet</button>
+    </div>
+  </header>
+
+  <!-- Hero Section -->
+  <section class="hero">
+    <div class="hero-logo">
+      <img src="https://i.ibb.co/7JqZg6q/lucid-origin-Spooky-ghost-character-logo-dark-charcoal-gray-ghost-figure-with-hood-like-top-m-0.jpg" alt="Shadow Soul Logo">
+    </div>
+    <h1><span class="gradient">SHADOW</span> SOUL</h1>
+    <p class="subtitle">The Ultimate Privacy Suite for Solana</p>
+    <div class="feature-pills">
+      <div class="pill">
+        <svg viewBox="0 0 24 24"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0110 0v4"/></svg>
+        Private Payments
+      </div>
+      <div class="pill">
+        <svg viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+        Stealth Addresses
+      </div>
+      <div class="pill">
+        <svg viewBox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+        ZK Identity
+      </div>
+    </div>
+    <button class="cta-btn">Launch App</button>
+  </section>
+
+  <!-- Stats -->
+  <section class="stats">
+    <div class="stat-card">
+      <div class="stat-icon">
+        <svg viewBox="0 0 24 24"><path d="M12 2v20M2 12h20"/></svg>
+      </div>
+      <div class="stat-value">1,234</div>
+      <div class="stat-label">Total Deposits</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-icon">
+        <svg viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75"/></svg>
+      </div>
+      <div class="stat-value">892</div>
+      <div class="stat-label">Anonymity Set</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-icon">
+        <svg viewBox="0 0 24 24"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/></svg>
+      </div>
+      <div class="stat-value">5,678 SOL</div>
+      <div class="stat-label">Total Volume</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-icon">
+        <svg viewBox="0 0 24 24"><path d="M22 11.08V12a10 10 0 11-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+      </div>
+      <div class="stat-value">456</div>
+      <div class="stat-label">Stealth Payments</div>
+    </div>
+  </section>
+
+  <!-- Main App Section -->
+  <section class="app-section">
+    <div class="tabs">
+      <button class="tab active">
+        <svg viewBox="0 0 24 24"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0110 0v4"/></svg>
+        Privacy Pool
+      </button>
+      <button class="tab">
+        <svg viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+        Stealth
+      </button>
+      <button class="tab">
+        <svg viewBox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+        Identity
+      </button>
+    </div>
+
+    <div class="glass-card">
+      <div class="mode-toggle">
+        <button class="mode-btn active">
+          <svg viewBox="0 0 24 24"><path d="M12 5v14M5 12l7 7 7-7"/></svg>
+          Deposit
+        </button>
+        <button class="mode-btn">
+          <svg viewBox="0 0 24 24"><path d="M12 19V5M5 12l7-7 7 7"/></svg>
+          Withdraw
+        </button>
+      </div>
+
+      <p style="color: rgba(192, 132, 252, 0.6); font-size: 14px; margin-bottom: 12px;">Select Amount</p>
+      <div class="amount-grid">
+        <button class="amount-btn">0.1 SOL</button>
+        <button class="amount-btn">0.5 SOL</button>
+        <button class="amount-btn active">1 SOL</button>
+        <button class="amount-btn">5 SOL</button>
+        <button class="amount-btn">10 SOL</button>
+      </div>
+
+      <div class="info-box">
+        <svg viewBox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+        <div>
+          <p>Your deposit will be added to an anonymous pool of <strong>1 SOL</strong> deposits.</p>
+          <p style="margin-top: 8px; color: rgba(192, 132, 252, 0.5);">You'll receive a secret note - this is your proof of deposit. <strong style="color: var(--purple-400);">Save it securely!</strong></p>
+        </div>
+      </div>
+
+      <button class="action-btn">
+        <svg viewBox="0 0 24 24"><path d="M12 5v14M5 12l7 7 7-7"/></svg>
+        Deposit 1 SOL
+      </button>
+
+      <div class="pool-stats">
+        <div class="pool-stat">
+          <div class="pool-stat-value">892</div>
+          <div class="pool-stat-label">Pool Size</div>
+        </div>
+        <div class="pool-stat">
+          <div class="pool-stat-value">1 SOL</div>
+          <div class="pool-stat-label">Denomination</div>
+        </div>
+        <div class="pool-stat">
+          <div class="pool-stat-value">~0.001</div>
+          <div class="pool-stat-label">Fee (SOL)</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Features Section -->
+  <section class="features">
+    <div class="section-title">
+      <h2>How It Works</h2>
+    </div>
+    <p class="section-subtitle">Three layers of privacy protection powered by zero-knowledge proofs</p>
+
+    <div class="features-grid">
+      <div class="feature-card">
+        <div class="feature-icon">
+          <svg viewBox="0 0 24 24"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0110 0v4"/></svg>
+        </div>
+        <h3>Privacy Pool</h3>
+        <p>Deposit SOL into an anonymous pool. Withdraw to any address without revealing the connection between sender and receiver.</p>
+        <div class="feature-tags">
+          <span class="feature-tag">ZK Proofs</span>
+          <span class="feature-tag">Merkle Tree</span>
+          <span class="feature-tag">Anti-sybil</span>
+        </div>
+      </div>
+
+      <div class="feature-card">
+        <div class="feature-icon">
+          <svg viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+        </div>
+        <h3>Stealth Addresses</h3>
+        <p>Receive payments to unique, unlinkable addresses. Only you can detect and spend from these one-time addresses.</p>
+        <div class="feature-tags">
+          <span class="feature-tag">ECDH Protocol</span>
+          <span class="feature-tag">View Tags</span>
+          <span class="feature-tag">Efficient Scanning</span>
+        </div>
+      </div>
+
+      <div class="feature-card">
+        <div class="feature-icon">
+          <svg viewBox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+        </div>
+        <h3>Humanship</h3>
+        <p>Prove you're a unique human without revealing who you are. Perfect for sybil-resistant airdrops and DAO voting.</p>
+        <div class="feature-tags">
+          <span class="feature-tag">ZK Identity</span>
+          <span class="feature-tag">Sybil Resistant</span>
+          <span class="feature-tag">Privacy First</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Tech Section -->
+  <section class="tech-section">
+    <p style="text-align: center; color: rgba(192, 132, 252, 0.6); margin-bottom: 24px;">Powered By</p>
+    <div class="tech-grid">
+      <div class="tech-badge">Solana</div>
+      <div class="tech-badge">Anchor</div>
+      <div class="tech-badge">Circom</div>
+      <div class="tech-badge">Groth16</div>
+      <div class="tech-badge">Poseidon</div>
+      <div class="tech-badge">TypeScript</div>
+      <div class="tech-badge">Next.js</div>
+    </div>
+  </section>
+
+  <!-- CTA Section -->
+  <section class="cta-section">
+    <h2>Ready to go <span class="gradient">invisible</span>?</h2>
+    <p>Join thousands of users protecting their financial privacy on Solana</p>
+    <button class="cta-btn">Connect Wallet</button>
+  </section>
+
+  <!-- Footer -->
+  <footer>
+    <div class="footer-content">
+      <div>
+        <div class="footer-brand">
+          <div class="footer-brand-icon">
+            <img src="https://i.ibb.co/7JqZg6q/lucid-origin-Spooky-ghost-character-logo-dark-charcoal-gray-ghost-figure-with-hood-like-top-m-0.jpg" alt="Shadow Soul">
+          </div>
+          <span>Shadow Soul</span>
+        </div>
+        <p class="footer-desc">The ultimate privacy suite for Solana. Anonymous payments, stealth addresses, and zero-knowledge identity proofs.</p>
+      </div>
+      <div class="footer-section">
+        <h4>Protocol</h4>
+        <div class="footer-links">
+          <a href="#">Documentation</a>
+          <a href="#">FAQ</a>
+          <a href="#">GitHub</a>
+        </div>
+      </div>
+      <div class="footer-section">
+        <h4>Community</h4>
+        <div class="social-links">
+          <a href="#" class="social-link">
+            <svg viewBox="0 0 24 24"><path d="M23 3a10.9 10.9 0 01-3.14 1.53 4.48 4.48 0 00-7.86 3v1A10.66 10.66 0 013 4s-4 9 5 13a11.64 11.64 0 01-7 2c9 5 20 0 20-11.5a4.5 4.5 0 00-.08-.83A7.72 7.72 0 0023 3z"/></svg>
+          </a>
+          <a href="#" class="social-link">
+            <svg viewBox="0 0 24 24"><path d="M9 19c-5 1.5-5-2.5-7-3m14 6v-3.87a3.37 3.37 0 00-.94-2.61c3.14-.35 6.44-1.54 6.44-7A5.44 5.44 0 0020 4.77 5.07 5.07 0 0019.91 1S18.73.65 16 2.48a13.38 13.38 0 00-7 0C6.27.65 5.09 1 5.09 1A5.07 5.07 0 005 4.77a5.44 5.44 0 00-1.5 3.78c0 5.42 3.3 6.61 6.44 7A3.37 3.37 0 009 18.13V22"/></svg>
+          </a>
+          <a href="#" class="social-link">
+            <svg viewBox="0 0 24 24"><path d="M21 11.5a8.38 8.38 0 01-.9 3.8 8.5 8.5 0 01-7.6 4.7 8.38 8.38 0 01-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 01-.9-3.8 8.5 8.5 0 014.7-7.6 8.38 8.38 0 013.8-.9h.5a8.48 8.48 0 018 8v.5z"/></svg>
+          </a>
+        </div>
+      </div>
+    </div>
+    <div class="footer-bottom">
+      <p>2026 Shadow Soul. Built for Solana Privacy Hack</p>
+      <div class="powered">
+        <span>Powered by</span>
+        <span class="highlight">Solana</span>
+        <span>|</span>
+        <span class="highlight">ZK Proofs</span>
+      </div>
+    </div>
+  </footer>
+</body>
+</html>

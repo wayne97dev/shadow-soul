@@ -1,0 +1,217 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ============================================================================
+   SHADOW SOUL - Global Styles
+   Theme: Purple & Black
+   ============================================================================ */
+
+:root {
+  /* Purple palette */
+  --purple-50: #faf5ff;
+  --purple-100: #f3e8ff;
+  --purple-200: #e9d5ff;
+  --purple-300: #d8b4fe;
+  --purple-400: #c084fc;
+  --purple-500: #a855f7;
+  --purple-600: #9333ea;
+  --purple-700: #7c3aed;
+  --purple-800: #6b21a8;
+  --purple-900: #581c87;
+  
+  /* Dark palette */
+  --dark-50: #1a1a2e;
+  --dark-100: #16162a;
+  --dark-200: #0f0f1a;
+  --dark-300: #0a0a12;
+  --dark-400: #050508;
+}
+
+* {
+  box-sizing: border-box;
+  padding: 0;
+  margin: 0;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  background: linear-gradient(135deg, #0a0a12 0%, #050508 50%, #0c0515 100%);
+  color: #ffffff;
+  min-height: 100vh;
+  overflow-x: hidden;
+}
+
+::selection {
+  background: var(--purple-600);
+  color: white;
+}
+
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--dark-200);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--purple-800);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--purple-700);
+}
+
+/* ============================================================================
+   Components
+   ============================================================================ */
+
+@layer components {
+  .glass-card {
+    @apply relative p-6 rounded-2xl;
+    background: linear-gradient(
+      135deg,
+      rgba(139, 92, 246, 0.05) 0%,
+      rgba(0, 0, 0, 0.4) 100%
+    );
+    border: 1px solid rgba(139, 92, 246, 0.1);
+    backdrop-filter: blur(20px);
+    box-shadow: 
+      0 4px 30px rgba(0, 0, 0, 0.3),
+      inset 0 1px 0 rgba(255, 255, 255, 0.05);
+  }
+
+  .glass-card-hover:hover {
+    border-color: rgba(168, 85, 247, 0.3);
+    box-shadow: 0 8px 40px rgba(139, 92, 246, 0.15);
+    transform: translateY(-2px);
+  }
+
+  .input-dark {
+    @apply w-full px-4 py-3 rounded-xl transition-all duration-300;
+    background: rgba(0, 0, 0, 0.3);
+    border: 1px solid rgba(139, 92, 246, 0.2);
+    color: white;
+  }
+
+  .input-dark:focus {
+    outline: none;
+    border-color: rgba(168, 85, 247, 0.5);
+    box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.1);
+  }
+
+  .input-dark::placeholder {
+    color: rgba(168, 85, 247, 0.3);
+  }
+
+  .btn-primary {
+    @apply px-6 py-3 rounded-xl font-semibold transition-all duration-300;
+    background: linear-gradient(135deg, var(--purple-600) 0%, var(--purple-700) 100%);
+    color: white;
+    border: none;
+    box-shadow: 0 4px 15px rgba(139, 92, 246, 0.3);
+  }
+
+  .btn-primary:hover {
+    background: linear-gradient(135deg, var(--purple-500) 0%, var(--purple-600) 100%);
+    box-shadow: 0 6px 20px rgba(139, 92, 246, 0.4);
+    transform: translateY(-2px);
+  }
+
+  .btn-primary:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    transform: none;
+  }
+
+  .btn-secondary {
+    @apply px-6 py-3 rounded-xl font-semibold transition-all duration-300;
+    background: transparent;
+    color: var(--purple-400);
+    border: 1px solid rgba(139, 92, 246, 0.3);
+  }
+
+  .btn-secondary:hover {
+    background: rgba(139, 92, 246, 0.1);
+    border-color: rgba(139, 92, 246, 0.5);
+  }
+
+  .gradient-text {
+    @apply text-transparent bg-clip-text;
+    background-image: linear-gradient(135deg, var(--purple-400) 0%, var(--purple-600) 100%);
+  }
+}
+
+/* ============================================================================
+   Animations
+   ============================================================================ */
+
+@keyframes float {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-10px); }
+}
+
+@keyframes pulse-glow {
+  0%, 100% { box-shadow: 0 0 20px rgba(139, 92, 246, 0.2); }
+  50% { box-shadow: 0 0 40px rgba(139, 92, 246, 0.4); }
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+.animate-float {
+  animation: float 6s ease-in-out infinite;
+}
+
+.animate-pulse-glow {
+  animation: pulse-glow 3s ease-in-out infinite;
+}
+
+.loading-spinner {
+  @apply inline-block w-5 h-5 border-2 rounded-full;
+  border-color: var(--purple-400) transparent var(--purple-400) transparent;
+  animation: spin 1s linear infinite;
+}
+
+/* ============================================================================
+   Wallet Adapter Overrides
+   ============================================================================ */
+
+.wallet-adapter-button {
+  background: linear-gradient(135deg, var(--purple-600) 0%, var(--purple-700) 100%) !important;
+  border-radius: 12px !important;
+  font-weight: 600 !important;
+}
+
+.wallet-adapter-button:hover {
+  background: linear-gradient(135deg, var(--purple-500) 0%, var(--purple-600) 100%) !important;
+}
+
+.wallet-adapter-modal-wrapper {
+  background: var(--dark-200) !important;
+  border: 1px solid rgba(139, 92, 246, 0.2) !important;
+  border-radius: 16px !important;
+}
+
+.wallet-adapter-modal-title {
+  color: white !important;
+}
+
+.wallet-adapter-modal-list li {
+  background: rgba(0, 0, 0, 0.3) !important;
+  border-radius: 12px !important;
+  margin-bottom: 8px !important;
+}
+
+.wallet-adapter-modal-list li:hover {
+  background: rgba(139, 92, 246, 0.1) !important;
+}
