@@ -93,7 +93,7 @@ function parseNote(note: string): { secret: Uint8Array; commitment: Uint8Array; 
     const secret = new Uint8Array(Buffer.from(secretHex, 'hex'));
     const commitment = new Uint8Array(sha256.array(secret));
     // Nullifier hash = sha256(secret || "nullifier")
-    const nullifierInput = new Uint8Array([...secret, ...Buffer.from('nullifier')]);
+    const nullifierInput = Buffer.concat([Buffer.from(secret), Buffer.from('nullifier')]);
     const nullifierHash = new Uint8Array(sha256.array(nullifierInput));
     return { secret, commitment, nullifierHash };
   } catch {
