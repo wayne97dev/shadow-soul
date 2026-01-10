@@ -92,6 +92,23 @@ function parseNote(note: string): { secret: Uint8Array; commitment: Uint8Array; 
   }
 }
 
+// Pool layout offsets (after 8-byte discriminator):
+// authority: 32 bytes (offset 8)
+// merkle_root: 32 bytes (offset 40)
+// current_index: 4 bytes (offset 72)
+// denomination: 8 bytes (offset 76)
+// total_deposited: 8 bytes (offset 84)
+// total_withdrawn: 8 bytes (offset 92)
+// enabled: 1 byte (offset 100)
+// fee_bps: 2 bytes (offset 101)
+// fee_recipient: 32 bytes (offset 103)
+// bump: 1 byte (offset 135)
+
+interface PoolData {
+  merkleRoot: Uint8Array;
+  feeRecipient: PublicKey;
+}
+
 type Tab = 'pool' | 'stealth' | 'identity';
 
 export default function AppPage() {
@@ -204,16 +221,16 @@ function PrivacyPool() {
     }
   }, [wallet.publicKey, recipient]);
 
-  // Fetch merkle root from pool account
-  const fetchMerkleRoot = async (poolPda: PublicKey): Promise<Uint8Array> => {
+  const fetchPoolData = async (poolPda: PublicKey): Promise<PoolData> => {
     const accountInfo = await connection.getAccountInfo(poolPda);
     if (!accountInfo) {
       throw new Error('Pool account not found');
     }
-    // Pool layout: 8 (discriminator) + 32 (authority) + 32 (merkle_root)
-    // merkle_root is at offset 40
-    const merkleRoot = accountInfo.data.slice(40, 72);
-    return new Uint8Array(merkleRoot);
+    // merkle_root at offset 40 (8 discriminator + 32 authority)
+    const merkleRoot = new Uint8Array(accountInfo.data.slice(40, 72));
+    // fee_recipient at offset 103
+    const feeRecipient = new PublicKey(accountInfo.data.slice(103, 135));
+    return { merkleRoot, feeRecipient };
   };
 
   const handleDeposit = async () => {
@@ -324,22 +341,20 @@ function PrivacyPool() {
       const [vaultPda] = getVaultPDA(poolPda);
       const [commitmentPda] = getCommitmentPDA(commitment);
 
-      // Fetch current merkle root from pool
       toast.loading('Fetching pool state...', { id: 'fetch' });
-      const merkleRoot = await fetchMerkleRoot(poolPda);
+      const poolData = await fetchPoolData(poolPda);
       toast.dismiss('fetch');
 
       const proofA = new Uint8Array(64).fill(1);
       const proofB = new Uint8Array(128).fill(1);
       const proofC = new Uint8Array(64).fill(1);
       
-      // Total: 8 + 32 + 32 + 32 + 64 + 128 + 64 = 360 bytes
       const data = Buffer.alloc(360);
       let offset = 0;
       
       WITHDRAW_DISCRIMINATOR.copy(data, offset); offset += 8;
       Buffer.from(nullifierHash).copy(data, offset); offset += 32;
-      Buffer.from(merkleRoot).copy(data, offset); offset += 32;
+      Buffer.from(poolData.merkleRoot).copy(data, offset); offset += 32;
       recipientPubkey.toBuffer().copy(data, offset); offset += 32;
       Buffer.from(proofA).copy(data, offset); offset += 64;
       Buffer.from(proofB).copy(data, offset); offset += 128;
@@ -351,7 +366,7 @@ function PrivacyPool() {
           { pubkey: commitmentPda, isSigner: false, isWritable: true },
           { pubkey: vaultPda, isSigner: false, isWritable: true },
           { pubkey: recipientPubkey, isSigner: false, isWritable: true },
-          { pubkey: wallet.publicKey, isSigner: true, isWritable: true },
+          { pubkey: poolData.feeRecipient, isSigner: false, isWritable: true },
           { pubkey: SystemProgram.programId, isSigner: false, isWritable: false },
         ],
         programId: PROGRAM_ID,
