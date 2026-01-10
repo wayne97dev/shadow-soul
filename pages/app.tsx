@@ -219,21 +219,26 @@ function PrivacyPool() {
 
       const transaction = new Transaction().add(instruction);
       
-      // Use wallet.sendTransaction - Phantom handles blockhash internally
       const signature = await wallet.sendTransaction(transaction, connection);
       
-      toast.loading('Confirming transaction...', { id: 'confirm' });
-      await connection.confirmTransaction(signature, 'confirmed');
-      
-      toast.dismiss('confirm');
-      toast.success('Deposit successful!');
-      
+      // SHOW NOTE IMMEDIATELY after sending - before confirmation
       setGeneratedNote(note);
       setTxSignature(signature);
+      toast.success('Transaction sent! SAVE YOUR NOTE NOW!');
+      
+      // Try to confirm but don't fail if timeout
+      toast.loading('Confirming...', { id: 'confirm' });
+      try {
+        await connection.confirmTransaction(signature, 'confirmed');
+        toast.dismiss('confirm');
+        toast.success('Deposit confirmed!');
+      } catch (e) {
+        toast.dismiss('confirm');
+        toast.success('Check explorer for confirmation status.');
+      }
       
     } catch (error: any) {
       console.error('Deposit error:', error);
-      toast.dismiss('confirm');
       toast.error(error.message || 'Deposit failed');
     } finally {
       setIsLoading(false);
@@ -299,7 +304,7 @@ function PrivacyPool() {
 
             {generatedNote && (
               <div className="mt-6 p-4 rounded-xl bg-green-500/10 border border-green-500/20">
-                <p className="text-sm font-medium text-green-400 mb-2">Your Secret Note:</p>
+                <p className="text-sm font-medium text-green-400 mb-2">⚠️ SAVE THIS NOTE NOW - You need it to withdraw!</p>
                 <div className="flex items-center gap-2 bg-[#0a0a0f] p-3 rounded-lg">
                   <code className="text-sm text-green-300 flex-1 break-all">{generatedNote}</code>
                   <button onClick={copyNote} className="p-2 hover:bg-white/10 rounded-lg transition">
