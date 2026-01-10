@@ -38,7 +38,6 @@ const DENOMINATIONS: Record<string, bigint> = {
   '5': BigInt(5_000_000_000),
 };
 
-// Anchor discriminators - sha256("global:<method>")[0..8]
 const DEPOSIT_DISCRIMINATOR = Buffer.from([242, 35, 198, 137, 82, 225, 242, 182]);
 const WITHDRAW_DISCRIMINATOR = Buffer.from(sha256.array('global:withdraw').slice(0, 8));
 
@@ -85,7 +84,6 @@ function parseNote(note: string): { secret: Uint8Array; commitment: Uint8Array; 
     const secretHex = note.replace('shadow-soul-', '');
     const secret = new Uint8Array(Buffer.from(secretHex, 'hex'));
     const commitment = new Uint8Array(sha256.array(secret));
-    // Nullifier hash = sha256(secret || "nullifier")
     const nullifierInput = Buffer.concat([Buffer.from(secret), Buffer.from('nullifier')]);
     const nullifierHash = new Uint8Array(sha256.array(nullifierInput));
     return { secret, commitment, nullifierHash };
@@ -206,6 +204,18 @@ function PrivacyPool() {
     }
   }, [wallet.publicKey, recipient]);
 
+  // Fetch merkle root from pool account
+  const fetchMerkleRoot = async (poolPda: PublicKey): Promise<Uint8Array> => {
+    const accountInfo = await connection.getAccountInfo(poolPda);
+    if (!accountInfo) {
+      throw new Error('Pool account not found');
+    }
+    // Pool layout: 8 (discriminator) + 32 (authority) + 32 (merkle_root)
+    // merkle_root is at offset 40
+    const merkleRoot = accountInfo.data.slice(40, 72);
+    return new Uint8Array(merkleRoot);
+  };
+
   const handleDeposit = async () => {
     if (!wallet.publicKey || !wallet.sendTransaction) {
       toast.error('Please connect your wallet');
@@ -312,19 +322,14 @@ function PrivacyPool() {
       const { commitment, nullifierHash } = parsed;
       const [poolPda] = getPoolPDA(denominationLamports);
       const [vaultPda] = getVaultPDA(poolPda);
-      // Nullifier PDA uses "commitment" seed with the commitment value
       const [commitmentPda] = getCommitmentPDA(commitment);
 
-      // Build instruction data matching the program:
-      // nullifier_hash: [u8; 32]
-      // root: [u8; 32] - merkle root is [0; 32] as initialized
-      // recipient: Pubkey (32 bytes)
-      // proof_a: [u8; 64]
-      // proof_b: [u8; 128]
-      // proof_c: [u8; 64]
-      
-      const root = new Uint8Array(32).fill(0); // merkle_root is [0u8; 32]
-      const proofA = new Uint8Array(64).fill(1); // non-zero for MVP validation
+      // Fetch current merkle root from pool
+      toast.loading('Fetching pool state...', { id: 'fetch' });
+      const merkleRoot = await fetchMerkleRoot(poolPda);
+      toast.dismiss('fetch');
+
+      const proofA = new Uint8Array(64).fill(1);
       const proofB = new Uint8Array(128).fill(1);
       const proofC = new Uint8Array(64).fill(1);
       
@@ -334,7 +339,7 @@ function PrivacyPool() {
       
       WITHDRAW_DISCRIMINATOR.copy(data, offset); offset += 8;
       Buffer.from(nullifierHash).copy(data, offset); offset += 32;
-      Buffer.from(root).copy(data, offset); offset += 32;
+      Buffer.from(merkleRoot).copy(data, offset); offset += 32;
       recipientPubkey.toBuffer().copy(data, offset); offset += 32;
       Buffer.from(proofA).copy(data, offset); offset += 64;
       Buffer.from(proofB).copy(data, offset); offset += 128;
@@ -343,7 +348,7 @@ function PrivacyPool() {
       const instruction = new TransactionInstruction({
         keys: [
           { pubkey: poolPda, isSigner: false, isWritable: true },
-          { pubkey: commitmentPda, isSigner: false, isWritable: true }, // nullifier account
+          { pubkey: commitmentPda, isSigner: false, isWritable: true },
           { pubkey: vaultPda, isSigner: false, isWritable: true },
           { pubkey: recipientPubkey, isSigner: false, isWritable: true },
           { pubkey: wallet.publicKey, isSigner: true, isWritable: true },
@@ -371,6 +376,7 @@ function PrivacyPool() {
       
     } catch (error: any) {
       console.error('Withdraw error:', error);
+      toast.dismiss('fetch');
       toast.error(error.message || 'Withdraw failed');
     } finally {
       setIsLoading(false);
