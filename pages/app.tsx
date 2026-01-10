@@ -264,12 +264,12 @@ function PrivacyPool() {
       const transaction = new Transaction().add(instruction);
       transaction.feePayer = wallet.publicKey;
       
-      const { blockhash } = await connection.getLatestBlockhash();
-      transaction.recentBlockhash = blockhash;
+      // Phantom handles blockhash internally
+      
 
       // Sign and send
-      const signed = await wallet.signTransaction(transaction);
-      const signature = await connection.sendRawTransaction(signed.serialize());
+      // Use sendTransaction - Phantom handles everything
+      const signature = await wallet.sendTransaction(transaction, connection);
       
       toast.loading('Confirming transaction...', { id: 'confirm' });
       
