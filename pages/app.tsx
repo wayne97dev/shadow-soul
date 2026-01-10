@@ -38,7 +38,9 @@ const DENOMINATIONS: Record<string, bigint> = {
   '5': BigInt(5_000_000_000),
 };
 
+// Anchor discriminators
 const DEPOSIT_DISCRIMINATOR = Buffer.from([242, 35, 198, 137, 82, 225, 242, 182]);
+const WITHDRAW_DISCRIMINATOR = Buffer.from(sha256.array('global:withdraw').slice(0, 8));
 
 function getPoolPDA(denominationLamports: bigint): [PublicKey, number] {
   const denomBuffer = Buffer.alloc(8);
@@ -63,6 +65,13 @@ function getCommitmentPDA(commitment: Uint8Array): [PublicKey, number] {
   );
 }
 
+function getNullifierPDA(nullifierHash: Uint8Array): [PublicKey, number] {
+  return PublicKey.findProgramAddressSync(
+    [Buffer.from('nullifier'), nullifierHash],
+    PROGRAM_ID
+  );
+}
+
 function generateCommitment(): { secret: string; commitment: Uint8Array; note: string } {
   const secretBytes = new Uint8Array(32);
   if (typeof window !== 'undefined') {
@@ -73,6 +82,23 @@ function generateCommitment(): { secret: string; commitment: Uint8Array; note: s
   const commitment = new Uint8Array(commitmentHash);
   const note = `shadow-soul-${secret}`;
   return { secret, commitment, note };
+}
+
+function parseNote(note: string): { secret: Uint8Array; commitment: Uint8Array; nullifierHash: Uint8Array } | null {
+  try {
+    if (!note.startsWith('shadow-soul-')) {
+      return null;
+    }
+    const secretHex = note.replace('shadow-soul-', '');
+    const secret = new Uint8Array(Buffer.from(secretHex, 'hex'));
+    const commitment = new Uint8Array(sha256.array(secret));
+    // Nullifier hash = sha256(secret || "nullifier")
+    const nullifierInput = new Uint8Array([...secret, ...Buffer.from('nullifier')]);
+    const nullifierHash = new Uint8Array(sha256.array(nullifierInput));
+    return { secret, commitment, nullifierHash };
+  } catch {
+    return null;
+  }
 }
 
 type Tab = 'pool' | 'stealth' | 'identity';
@@ -173,11 +199,20 @@ function PrivacyPool() {
   const { connection } = useConnection();
   const [mode, setMode] = useState<'deposit' | 'withdraw'>('deposit');
   const [amount, setAmount] = useState('0.1');
+  const [withdrawAmount, setWithdrawAmount] = useState('0.1');
   const [secretNote, setSecretNote] = useState('');
+  const [recipient, setRecipient] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [generatedNote, setGeneratedNote] = useState('');
   const [txSignature, setTxSignature] = useState('');
   const [copied, setCopied] = useState(false);
+
+  // Auto-fill recipient with connected wallet
+  useEffect(() => {
+    if (wallet.publicKey && !recipient) {
+      setRecipient(wallet.publicKey.toBase58());
+    }
+  }, [wallet.publicKey, recipient]);
 
   const handleDeposit = async () => {
     if (!wallet.publicKey || !wallet.sendTransaction) {
@@ -221,12 +256,11 @@ function PrivacyPool() {
       
       const signature = await wallet.sendTransaction(transaction, connection);
       
-      // SHOW NOTE IMMEDIATELY after sending - before confirmation
+      // SHOW NOTE IMMEDIATELY after sending
       setGeneratedNote(note);
       setTxSignature(signature);
       toast.success('Transaction sent! SAVE YOUR NOTE NOW!');
       
-      // Try to confirm but don't fail if timeout
       toast.loading('Confirming...', { id: 'confirm' });
       try {
         await connection.confirmTransaction(signature, 'confirmed');
@@ -246,11 +280,97 @@ function PrivacyPool() {
   };
 
   const handleWithdraw = async () => {
+    if (!wallet.publicKey || !wallet.sendTransaction) {
+      toast.error('Please connect your wallet');
+      return;
+    }
+
     if (!secretNote) {
       toast.error('Please enter your secret note');
       return;
     }
-    toast.error('Withdraw feature coming soon! Save your note for now.');
+
+    if (!recipient) {
+      toast.error('Please enter recipient address');
+      return;
+    }
+
+    const parsed = parseNote(secretNote.trim());
+    if (!parsed) {
+      toast.error('Invalid secret note format');
+      return;
+    }
+
+    const denominationLamports = DENOMINATIONS[withdrawAmount];
+    if (!denominationLamports) {
+      toast.error('Invalid amount selected');
+      return;
+    }
+
+    let recipientPubkey: PublicKey;
+    try {
+      recipientPubkey = new PublicKey(recipient);
+    } catch {
+      toast.error('Invalid recipient address');
+      return;
+    }
+
+    setIsLoading(true);
+    setTxSignature('');
+
+    try {
+      const { commitment, nullifierHash } = parsed;
+      const [poolPda] = getPoolPDA(denominationLamports);
+      const [vaultPda] = getVaultPDA(poolPda);
+      const [commitmentPda] = getCommitmentPDA(commitment);
+      const [nullifierPda] = getNullifierPDA(nullifierHash);
+
+      // Build instruction data: discriminator + nullifier_hash + recipient + proof
+      // For MVP, proof is just 128 bytes of non-zero data
+      const proof = new Uint8Array(128).fill(1);
+      
+      const data = Buffer.alloc(8 + 32 + 32 + 128); // discriminator + nullifier + recipient + proof
+      WITHDRAW_DISCRIMINATOR.copy(data, 0);
+      Buffer.from(nullifierHash).copy(data, 8);
+      recipientPubkey.toBuffer().copy(data, 40);
+      Buffer.from(proof).copy(data, 72);
+
+      const instruction = new TransactionInstruction({
+        keys: [
+          { pubkey: poolPda, isSigner: false, isWritable: true },
+          { pubkey: nullifierPda, isSigner: false, isWritable: true },
+          { pubkey: vaultPda, isSigner: false, isWritable: true },
+          { pubkey: recipientPubkey, isSigner: false, isWritable: true },
+          { pubkey: wallet.publicKey, isSigner: true, isWritable: true },
+          { pubkey: SystemProgram.programId, isSigner: false, isWritable: false },
+        ],
+        programId: PROGRAM_ID,
+        data: data,
+      });
+
+      const transaction = new Transaction().add(instruction);
+      
+      const signature = await wallet.sendTransaction(transaction, connection);
+      setTxSignature(signature);
+      toast.success('Withdraw transaction sent!');
+      
+      toast.loading('Confirming...', { id: 'confirm' });
+      try {
+        await connection.confirmTransaction(signature, 'confirmed');
+        toast.dismiss('confirm');
+        toast.success('Withdraw successful! Funds sent to recipient.');
+        setSecretNote('');
+      } catch (e) {
+        toast.dismiss('confirm');
+        toast.success('Check explorer for confirmation status.');
+      }
+      
+    } catch (error: any) {
+      console.error('Withdraw error:', error);
+      toast.error(error.message || 'Withdraw failed');
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const copyNote = () => {
@@ -322,13 +442,51 @@ function PrivacyPool() {
         ) : (
           <>
             <h3 className="text-xl font-semibold mb-6">Withdraw SOL</h3>
+            
+            <div className="mb-6">
+              <label className="block text-sm text-gray-400 mb-3">Amount (SOL) - Select the amount you deposited</label>
+              <div className="grid grid-cols-4 gap-3">
+                {amounts.map((amt) => (
+                  <button key={amt} onClick={() => setWithdrawAmount(amt)} className={`py-3 rounded-xl font-medium transition ${withdrawAmount === amt ? 'bg-purple-600 text-white' : 'bg-[#0a0a0f] text-gray-400 hover:text-white border border-white/10'}`}>
+                    {amt} SOL
+                  </button>
+                ))}
+              </div>
+            </div>
+
             <div className="mb-6">
               <label className="block text-sm text-gray-400 mb-3">Secret Note</label>
-              <textarea value={secretNote} onChange={(e) => setSecretNote(e.target.value)} placeholder="Enter your secret note..." className="w-full p-4 rounded-xl bg-[#0a0a0f] border border-white/10 focus:border-purple-500 focus:outline-none resize-none h-24" />
+              <textarea 
+                value={secretNote} 
+                onChange={(e) => setSecretNote(e.target.value)} 
+                placeholder="shadow-soul-..." 
+                className="w-full p-4 rounded-xl bg-[#0a0a0f] border border-white/10 focus:border-purple-500 focus:outline-none resize-none h-24 font-mono text-sm" 
+              />
             </div>
+
+            <div className="mb-6">
+              <label className="block text-sm text-gray-400 mb-3">Recipient Address</label>
+              <input 
+                type="text"
+                value={recipient} 
+                onChange={(e) => setRecipient(e.target.value)} 
+                placeholder="Solana wallet address" 
+                className="w-full p-4 rounded-xl bg-[#0a0a0f] border border-white/10 focus:border-purple-500 focus:outline-none font-mono text-sm" 
+              />
+              <p className="text-xs text-gray-500 mt-2">Default: your connected wallet. Change for private withdrawal to another address.</p>
+            </div>
+
             <button onClick={handleWithdraw} disabled={isLoading || !secretNote} className="w-full py-4 rounded-xl bg-purple-600 hover:bg-purple-700 disabled:opacity-50 disabled:cursor-not-allowed font-medium transition flex items-center justify-center gap-2">
-              {isLoading ? <><Loader2 className="w-5 h-5 animate-spin" /> Processing...</> : <><ArrowUpFromLine className="w-5 h-5" /> Withdraw</>}
+              {isLoading ? <><Loader2 className="w-5 h-5 animate-spin" /> Processing...</> : <><ArrowUpFromLine className="w-5 h-5" /> Withdraw {withdrawAmount} SOL</>}
             </button>
+
+            {txSignature && mode === 'withdraw' && (
+              <div className="mt-6">
+                <a href={`https://explorer.solana.com/tx/${txSignature}`} target="_blank" rel="noopener noreferrer" className="flex items-center justify-center gap-1 text-sm text-purple-400 hover:text-purple-300">
+                  View transaction on Explorer <ExternalLink className="w-4 h-4" />
+                </a>
+              </div>
+            )}
           </>
         )}
       </div>
