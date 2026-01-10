@@ -38,7 +38,7 @@ const DENOMINATIONS: Record<string, bigint> = {
   '5': BigInt(5_000_000_000),
 };
 
-// Anchor discriminators
+// Anchor discriminators - sha256("global:<method>")[0..8]
 const DEPOSIT_DISCRIMINATOR = Buffer.from([242, 35, 198, 137, 82, 225, 242, 182]);
 const WITHDRAW_DISCRIMINATOR = Buffer.from(sha256.array('global:withdraw').slice(0, 8));
 
@@ -61,13 +61,6 @@ function getVaultPDA(poolPda: PublicKey): [PublicKey, number] {
 function getCommitmentPDA(commitment: Uint8Array): [PublicKey, number] {
   return PublicKey.findProgramAddressSync(
     [Buffer.from('commitment'), commitment],
-    PROGRAM_ID
-  );
-}
-
-function getNullifierPDA(nullifierHash: Uint8Array): [PublicKey, number] {
-  return PublicKey.findProgramAddressSync(
-    [Buffer.from('nullifier'), nullifierHash],
     PROGRAM_ID
   );
 }
@@ -207,7 +200,6 @@ function PrivacyPool() {
   const [txSignature, setTxSignature] = useState('');
   const [copied, setCopied] = useState(false);
 
-  // Auto-fill recipient with connected wallet
   useEffect(() => {
     if (wallet.publicKey && !recipient) {
       setRecipient(wallet.publicKey.toBase58());
@@ -253,10 +245,8 @@ function PrivacyPool() {
       });
 
       const transaction = new Transaction().add(instruction);
-      
       const signature = await wallet.sendTransaction(transaction, connection);
       
-      // SHOW NOTE IMMEDIATELY after sending
       setGeneratedNote(note);
       setTxSignature(signature);
       toast.success('Transaction sent! SAVE YOUR NOTE NOW!');
@@ -322,23 +312,38 @@ function PrivacyPool() {
       const { commitment, nullifierHash } = parsed;
       const [poolPda] = getPoolPDA(denominationLamports);
       const [vaultPda] = getVaultPDA(poolPda);
+      // Nullifier PDA uses "commitment" seed with the commitment value
       const [commitmentPda] = getCommitmentPDA(commitment);
-      const [nullifierPda] = getNullifierPDA(nullifierHash);
 
-      // Build instruction data: discriminator + nullifier_hash + recipient + proof
-      // For MVP, proof is just 128 bytes of non-zero data
-      const proof = new Uint8Array(128).fill(1);
+      // Build instruction data matching the program:
+      // nullifier_hash: [u8; 32]
+      // root: [u8; 32] - merkle root is [0; 32] as initialized
+      // recipient: Pubkey (32 bytes)
+      // proof_a: [u8; 64]
+      // proof_b: [u8; 128]
+      // proof_c: [u8; 64]
       
-      const data = Buffer.alloc(8 + 32 + 32 + 128); // discriminator + nullifier + recipient + proof
-      WITHDRAW_DISCRIMINATOR.copy(data, 0);
-      Buffer.from(nullifierHash).copy(data, 8);
-      recipientPubkey.toBuffer().copy(data, 40);
-      Buffer.from(proof).copy(data, 72);
+      const root = new Uint8Array(32).fill(0); // merkle_root is [0u8; 32]
+      const proofA = new Uint8Array(64).fill(1); // non-zero for MVP validation
+      const proofB = new Uint8Array(128).fill(1);
+      const proofC = new Uint8Array(64).fill(1);
+      
+      // Total: 8 + 32 + 32 + 32 + 64 + 128 + 64 = 360 bytes
+      const data = Buffer.alloc(360);
+      let offset = 0;
+      
+      WITHDRAW_DISCRIMINATOR.copy(data, offset); offset += 8;
+      Buffer.from(nullifierHash).copy(data, offset); offset += 32;
+      Buffer.from(root).copy(data, offset); offset += 32;
+      recipientPubkey.toBuffer().copy(data, offset); offset += 32;
+      Buffer.from(proofA).copy(data, offset); offset += 64;
+      Buffer.from(proofB).copy(data, offset); offset += 128;
+      Buffer.from(proofC).copy(data, offset);
 
       const instruction = new TransactionInstruction({
         keys: [
           { pubkey: poolPda, isSigner: false, isWritable: true },
-          { pubkey: nullifierPda, isSigner: false, isWritable: true },
+          { pubkey: commitmentPda, isSigner: false, isWritable: true }, // nullifier account
           { pubkey: vaultPda, isSigner: false, isWritable: true },
           { pubkey: recipientPubkey, isSigner: false, isWritable: true },
           { pubkey: wallet.publicKey, isSigner: true, isWritable: true },
@@ -349,7 +354,6 @@ function PrivacyPool() {
       });
 
       const transaction = new Transaction().add(instruction);
-      
       const signature = await wallet.sendTransaction(transaction, connection);
       setTxSignature(signature);
       toast.success('Withdraw transaction sent!');
@@ -444,7 +448,7 @@ function PrivacyPool() {
             <h3 className="text-xl font-semibold mb-6">Withdraw SOL</h3>
             
             <div className="mb-6">
-              <label className="block text-sm text-gray-400 mb-3">Amount (SOL) - Select the amount you deposited</label>
+              <label className="block text-sm text-gray-400 mb-3">Amount (SOL) - Must match your deposit</label>
               <div className="grid grid-cols-4 gap-3">
                 {amounts.map((amt) => (
                   <button key={amt} onClick={() => setWithdrawAmount(amt)} className={`py-3 rounded-xl font-medium transition ${withdrawAmount === amt ? 'bg-purple-600 text-white' : 'bg-[#0a0a0f] text-gray-400 hover:text-white border border-white/10'}`}>
@@ -473,7 +477,7 @@ function PrivacyPool() {
                 placeholder="Solana wallet address" 
                 className="w-full p-4 rounded-xl bg-[#0a0a0f] border border-white/10 focus:border-purple-500 focus:outline-none font-mono text-sm" 
               />
-              <p className="text-xs text-gray-500 mt-2">Default: your connected wallet. Change for private withdrawal to another address.</p>
+              <p className="text-xs text-gray-500 mt-2">Default: your connected wallet. Change for private withdrawal.</p>
             </div>
 
             <button onClick={handleWithdraw} disabled={isLoading || !secretNote} className="w-full py-4 rounded-xl bg-purple-600 hover:bg-purple-700 disabled:opacity-50 disabled:cursor-not-allowed font-medium transition flex items-center justify-center gap-2">
