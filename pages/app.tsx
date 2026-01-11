@@ -38,7 +38,7 @@ const DENOMINATIONS: Record<string, bigint> = {
   '5': BigInt(5_000_000_000),
 };
 
-const DEPOSIT_DISCRIMINATOR = Buffer.from([242, 35, 198, 137, 82, 225, 242, 182]);
+const DEPOSIT_DISCRIMINATOR = Buffer.from(sha256.array('global:deposit').slice(0, 8));
 const WITHDRAW_DISCRIMINATOR = Buffer.from(sha256.array('global:withdraw').slice(0, 8));
 
 function getPoolPDA(denominationLamports: bigint): [PublicKey, number] {
@@ -46,13 +46,6 @@ function getPoolPDA(denominationLamports: bigint): [PublicKey, number] {
   denomBuffer.writeBigUInt64LE(denominationLamports);
   return PublicKey.findProgramAddressSync(
     [Buffer.from('privacy_pool'), denomBuffer],
-    PROGRAM_ID
-  );
-}
-
-function getVaultPDA(poolPda: PublicKey): [PublicKey, number] {
-  return PublicKey.findProgramAddressSync(
-    [Buffer.from('vault'), poolPda.toBuffer()],
     PROGRAM_ID
   );
 }
@@ -92,18 +85,6 @@ function parseNote(note: string): { secret: Uint8Array; commitment: Uint8Array; 
   }
 }
 
-// Pool layout offsets (after 8-byte discriminator):
-// authority: 32 bytes (offset 8)
-// merkle_root: 32 bytes (offset 40)
-// current_index: 4 bytes (offset 72)
-// denomination: 8 bytes (offset 76)
-// total_deposited: 8 bytes (offset 84)
-// total_withdrawn: 8 bytes (offset 92)
-// enabled: 1 byte (offset 100)
-// fee_bps: 2 bytes (offset 101)
-// fee_recipient: 32 bytes (offset 103)
-// bump: 1 byte (offset 135)
-
 interface PoolData {
   merkleRoot: Uint8Array;
   feeRecipient: PublicKey;
@@ -112,7 +93,7 @@ interface PoolData {
 type Tab = 'pool' | 'stealth' | 'identity';
 
 export default function AppPage() {
-  const { connected, publicKey } = useWallet();
+  const { connected } = useWallet();
   const [activeTab, setActiveTab] = useState<Tab>('pool');
   const [mounted, setMounted] = useState(false);
 
@@ -226,9 +207,7 @@ function PrivacyPool() {
     if (!accountInfo) {
       throw new Error('Pool account not found');
     }
-    // merkle_root at offset 40 (8 discriminator + 32 authority)
     const merkleRoot = new Uint8Array(accountInfo.data.slice(40, 72));
-    // fee_recipient at offset 103
     const feeRecipient = new PublicKey(accountInfo.data.slice(103, 135));
     return { merkleRoot, feeRecipient };
   };
@@ -252,7 +231,6 @@ function PrivacyPool() {
     try {
       const { commitment, note } = generateCommitment();
       const [poolPda] = getPoolPDA(denominationLamports);
-      const [vaultPda] = getVaultPDA(poolPda);
       const [commitmentPda] = getCommitmentPDA(commitment);
 
       const data = Buffer.alloc(40);
@@ -263,7 +241,6 @@ function PrivacyPool() {
         keys: [
           { pubkey: poolPda, isSigner: false, isWritable: true },
           { pubkey: commitmentPda, isSigner: false, isWritable: true },
-          { pubkey: vaultPda, isSigner: false, isWritable: true },
           { pubkey: wallet.publicKey, isSigner: true, isWritable: true },
           { pubkey: SystemProgram.programId, isSigner: false, isWritable: false },
         ],
@@ -338,7 +315,6 @@ function PrivacyPool() {
     try {
       const { commitment, nullifierHash } = parsed;
       const [poolPda] = getPoolPDA(denominationLamports);
-      const [vaultPda] = getVaultPDA(poolPda);
       const [commitmentPda] = getCommitmentPDA(commitment);
 
       toast.loading('Fetching pool state...', { id: 'fetch' });
@@ -349,6 +325,7 @@ function PrivacyPool() {
       const proofB = new Uint8Array(128).fill(1);
       const proofC = new Uint8Array(64).fill(1);
       
+      // Data: discriminator(8) + nullifier_hash(32) + root(32) + recipient(32) + proof_a(64) + proof_b(128) + proof_c(64) = 360
       const data = Buffer.alloc(360);
       let offset = 0;
       
@@ -364,7 +341,6 @@ function PrivacyPool() {
         keys: [
           { pubkey: poolPda, isSigner: false, isWritable: true },
           { pubkey: commitmentPda, isSigner: false, isWritable: true },
-          { pubkey: vaultPda, isSigner: false, isWritable: true },
           { pubkey: recipientPubkey, isSigner: false, isWritable: true },
           { pubkey: poolData.feeRecipient, isSigner: false, isWritable: true },
           { pubkey: SystemProgram.programId, isSigner: false, isWritable: false },
