@@ -12,7 +12,6 @@ import {
   Fingerprint, 
   Zap,
   Lock,
-  Users,
   ArrowRight,
   Github,
   FileText
@@ -60,13 +59,11 @@ export default function Home() {
       <div className="min-h-screen bg-[#0a0a0f] text-white overflow-hidden">
         <MatrixRain />
         
-        {/* Gradient orbs */}
         <div className="fixed inset-0 pointer-events-none">
           <div className="absolute top-0 left-1/4 w-[600px] h-[600px] bg-purple-600/20 rounded-full blur-[150px]" />
           <div className="absolute bottom-0 right-1/4 w-[500px] h-[500px] bg-violet-600/20 rounded-full blur-[150px]" />
         </div>
 
-        {/* Navigation */}
         <nav className="relative z-50 border-b border-white/5 bg-[#0d0d14]/80 backdrop-blur-sm">
           <div className="max-w-7xl mx-auto px-6 py-4">
             <div className="flex items-center justify-between">
@@ -89,7 +86,6 @@ export default function Home() {
           </div>
         </nav>
 
-        {/* Hero Section */}
         <section className="relative z-10 max-w-7xl mx-auto px-6 pt-20 pb-32">
           <motion.div 
             initial={{ opacity: 0, y: 20 }}
@@ -103,12 +99,10 @@ export default function Home() {
             </div>
             
             <h1 className="text-5xl md:text-7xl font-bold mb-4">
-              <GlitchText text="Private Transactions" className="block" />
+              <GlitchText text="Private Transactions" className="inline-block" />
             </h1>
             <h1 className="text-5xl md:text-7xl font-bold mb-8">
-              <span className="text-transparent bg-clip-text bg-gradient-to-r from-purple-400 to-violet-400">
-                <GlitchText text="Without Compromise" />
-              </span>
+              <GlitchText text="Without Compromise" className="inline-block" gradient={true} />
             </h1>
             
             <p className="text-xl text-gray-400 max-w-2xl mx-auto mb-12">
@@ -128,7 +122,6 @@ export default function Home() {
             </div>
           </motion.div>
 
-          {/* Stats */}
           <motion.div 
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
@@ -144,7 +137,6 @@ export default function Home() {
           </motion.div>
         </section>
 
-        {/* Features Section */}
         <section id="features" className="relative z-10 py-32 border-t border-white/5">
           <div className="max-w-7xl mx-auto px-6">
             <div className="text-center mb-16">
@@ -175,7 +167,6 @@ export default function Home() {
           </div>
         </section>
 
-        {/* How it Works */}
         <section id="how-it-works" className="relative z-10 py-32 border-t border-white/5">
           <div className="max-w-7xl mx-auto px-6">
             <div className="text-center mb-16">
@@ -209,7 +200,6 @@ export default function Home() {
           </div>
         </section>
 
-        {/* CTA Section */}
         <section className="relative z-10 py-32 border-t border-white/5">
           <div className="max-w-4xl mx-auto px-6 text-center">
             <motion.div
@@ -232,7 +222,6 @@ export default function Home() {
           </div>
         </section>
 
-        {/* Footer */}
         <footer className="relative z-10 border-t border-white/5 bg-[#0d0d14]/80 backdrop-blur-sm py-12">
           <div className="max-w-7xl mx-auto px-6">
             <div className="flex flex-col md:flex-row items-center justify-between gap-6">

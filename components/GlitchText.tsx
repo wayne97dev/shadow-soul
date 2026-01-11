@@ -1,77 +1,88 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, useCallback } from 'react';
+
+interface Particle {
+  x: number;
+  y: number;
+  color: string;
+  life: number;
+  id: number;
+}
 
 interface GlitchTextProps {
   text: string;
   className?: string;
+  gradient?: boolean;
 }
 
-export default function GlitchText({ text, className = '' }: GlitchTextProps) {
+export default function GlitchText({ text, className = '', gradient = false }: GlitchTextProps) {
   const containerRef = useRef<HTMLDivElement>(null);
-  const [displayText, setDisplayText] = useState(text);
-  const [colors, setColors] = useState<string[]>([]);
-  const chars = '!@#$%^&*()_+-=[]{}|;:,.<>?/\\~`0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz';
-  const glitchColors = ['#a855f7', '#22d3ee', '#4ade80', '#facc15', '#f472b6', '#818cf8'];
+  const [particles, setParticles] = useState<Particle[]>([]);
+  const particleId = useRef(0);
+  
+  const colors = ['#a855f7', '#22d3ee', '#4ade80', '#facc15', '#f472b6', '#818cf8', '#fb923c'];
 
-  useEffect(() => {
-    setColors(new Array(text.length).fill('white'));
-  }, [text]);
-
-  const handleMouseMove = (e: React.MouseEvent) => {
+  const handleMouseMove = useCallback((e: React.MouseEvent) => {
     if (!containerRef.current) return;
     
     const rect = containerRef.current.getBoundingClientRect();
     const x = e.clientX - rect.left;
-    const charWidth = rect.width / text.length;
-    const hoverIndex = Math.floor(x / charWidth);
+    const y = e.clientY - rect.top;
     
-    // Glitch characters near mouse
-    const newText = text.split('').map((char, i) => {
-      const distance = Math.abs(i - hoverIndex);
-      if (distance < 3 && char !== ' ') {
-        if (Math.random() > 0.5) {
-          return chars[Math.floor(Math.random() * chars.length)];
-        }
-      }
-      return char;
-    }).join('');
+    // Create multiple particles
+    const newParticles: Particle[] = [];
+    for (let i = 0; i < 3; i++) {
+      newParticles.push({
+        x: x + (Math.random() - 0.5) * 40,
+        y: y + (Math.random() - 0.5) * 40,
+        color: colors[Math.floor(Math.random() * colors.length)],
+        life: 1,
+        id: particleId.current++
+      });
+    }
     
-    // Color characters near mouse
-    const newColors = text.split('').map((_, i) => {
-      const distance = Math.abs(i - hoverIndex);
-      if (distance < 4) {
-        return glitchColors[Math.floor(Math.random() * glitchColors.length)];
-      }
-      return 'white';
-    });
-    
-    setDisplayText(newText);
-    setColors(newColors);
-  };
+    setParticles(prev => [...prev.slice(-50), ...newParticles]);
+  }, []);
 
-  const handleMouseLeave = () => {
-    setDisplayText(text);
-    setColors(new Array(text.length).fill('white'));
-  };
+  // Decay particles
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setParticles(prev => 
+        prev
+          .map(p => ({ ...p, life: p.life - 0.05 }))
+          .filter(p => p.life > 0)
+      );
+    }, 30);
+    return () => clearInterval(interval);
+  }, []);
 
   return (
     <div
       ref={containerRef}
-      className={`cursor-default select-none ${className}`}
+      className={`relative cursor-default select-none ${className}`}
       onMouseMove={handleMouseMove}
-      onMouseLeave={handleMouseLeave}
     >
-      {displayText.split('').map((char, i) => (
-        <span
-          key={i}
-          style={{ 
-            color: colors[i] || 'white',
-            textShadow: colors[i] !== 'white' ? `0 0 10px ${colors[i]}` : 'none',
-            transition: 'color 0.1s, text-shadow 0.1s'
+      {/* Particles */}
+      {particles.map(p => (
+        <div
+          key={p.id}
+          className="absolute pointer-events-none rounded-full"
+          style={{
+            left: p.x,
+            top: p.y,
+            width: 6 + Math.random() * 4,
+            height: 6 + Math.random() * 4,
+            backgroundColor: p.color,
+            opacity: p.life,
+            boxShadow: `0 0 ${10 * p.life}px ${p.color}`,
+            transform: 'translate(-50%, -50%)',
           }}
-        >
-          {char}
-        </span>
+        />
       ))}
+      
+      {/* Text */}
+      <span className={gradient ? 'text-transparent bg-clip-text bg-gradient-to-r from-purple-400 to-violet-400' : ''}>
+        {text}
+      </span>
     </div>
   );
 }
