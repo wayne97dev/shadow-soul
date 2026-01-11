@@ -88,6 +88,10 @@ function parseNote(note: string): { secret: Uint8Array; commitment: Uint8Array; 
 interface PoolData {
   merkleRoot: Uint8Array;
   feeRecipient: PublicKey;
+  currentIndex: number;
+  totalDeposited: bigint;
+  totalWithdrawn: bigint;
+  denomination: bigint;
 }
 
 type Tab = 'pool' | 'stealth' | 'identity';
@@ -195,12 +199,49 @@ function PrivacyPool() {
   const [generatedNote, setGeneratedNote] = useState('');
   const [txSignature, setTxSignature] = useState('');
   const [copied, setCopied] = useState(false);
+  const [poolStats, setPoolStats] = useState<{ totalDeposited: string; deposits: number; anonymitySet: number } | null>(null);
 
   useEffect(() => {
     if (wallet.publicKey && !recipient) {
       setRecipient(wallet.publicKey.toBase58());
     }
   }, [wallet.publicKey, recipient]);
+
+  // Fetch pool stats
+  useEffect(() => {
+    const fetchStats = async () => {
+      try {
+        const denominationLamports = DENOMINATIONS[amount];
+        const [poolPda] = getPoolPDA(denominationLamports);
+        const accountInfo = await connection.getAccountInfo(poolPda);
+        
+        if (accountInfo) {
+          // Parse pool data
+          // current_index at offset 72 (4 bytes)
+          const currentIndex = accountInfo.data.readUInt32LE(72);
+          // total_deposited at offset 84 (8 bytes)
+          const totalDeposited = accountInfo.data.readBigUInt64LE(84);
+          // total_withdrawn at offset 92 (8 bytes)
+          const totalWithdrawn = accountInfo.data.readBigUInt64LE(92);
+          
+          const activeDeposits = Number(totalDeposited - totalWithdrawn) / 1_000_000_000;
+          const totalDep = Number(totalDeposited) / 1_000_000_000;
+          
+          setPoolStats({
+            totalDeposited: totalDep.toFixed(2),
+            deposits: currentIndex,
+            anonymitySet: currentIndex // For MVP, anonymity set = total deposits
+          });
+        }
+      } catch (e) {
+        console.error('Failed to fetch pool stats:', e);
+      }
+    };
+
+    fetchStats();
+    const interval = setInterval(fetchStats, 10000); // Refresh every 10s
+    return () => clearInterval(interval);
+  }, [connection, amount]);
 
   const fetchPoolData = async (poolPda: PublicKey): Promise<PoolData> => {
     const accountInfo = await connection.getAccountInfo(poolPda);
@@ -209,7 +250,11 @@ function PrivacyPool() {
     }
     const merkleRoot = new Uint8Array(accountInfo.data.slice(40, 72));
     const feeRecipient = new PublicKey(accountInfo.data.slice(103, 135));
-    return { merkleRoot, feeRecipient };
+    const currentIndex = accountInfo.data.readUInt32LE(72);
+    const denomination = accountInfo.data.readBigUInt64LE(76);
+    const totalDeposited = accountInfo.data.readBigUInt64LE(84);
+    const totalWithdrawn = accountInfo.data.readBigUInt64LE(92);
+    return { merkleRoot, feeRecipient, currentIndex, totalDeposited, totalWithdrawn, denomination };
   };
 
   const handleDeposit = async () => {
@@ -325,7 +370,6 @@ function PrivacyPool() {
       const proofB = new Uint8Array(128).fill(1);
       const proofC = new Uint8Array(64).fill(1);
       
-      // Data: discriminator(8) + nullifier_hash(32) + root(32) + recipient(32) + proof_a(64) + proof_b(128) + proof_c(64) = 360
       const data = Buffer.alloc(360);
       let offset = 0;
       
@@ -494,15 +538,15 @@ function PrivacyPool() {
 
       <div className="mt-8 grid grid-cols-3 gap-4">
         <div className="p-6 rounded-xl bg-[#0d0d14]/90 backdrop-blur-sm border border-white/10 text-center">
-          <p className="text-2xl font-bold text-purple-400">--</p>
+          <p className="text-2xl font-bold text-purple-400">{poolStats?.totalDeposited || '0'} SOL</p>
           <p className="text-sm text-gray-400 mt-1">Total Deposited</p>
         </div>
         <div className="p-6 rounded-xl bg-[#0d0d14]/90 backdrop-blur-sm border border-white/10 text-center">
-          <p className="text-2xl font-bold text-purple-400">--</p>
+          <p className="text-2xl font-bold text-purple-400">{poolStats?.deposits || 0}</p>
           <p className="text-sm text-gray-400 mt-1">Deposits</p>
         </div>
         <div className="p-6 rounded-xl bg-[#0d0d14]/90 backdrop-blur-sm border border-white/10 text-center">
-          <p className="text-2xl font-bold text-purple-400">--</p>
+          <p className="text-2xl font-bold text-purple-400">{poolStats?.anonymitySet || 0}</p>
           <p className="text-sm text-gray-400 mt-1">Anonymity Set</p>
         </div>
       </div>
