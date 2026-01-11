@@ -29,7 +29,7 @@ import {
 } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 
-const PROGRAM_ID = new PublicKey('BqL5WE2r6kdDPbuT7pbuNpgkbD6iL6rqTbmnQf3BybdN');
+const PROGRAM_ID = new PublicKey('7LnXF8pJgE2HWCmmTzMa6i9PTUWq2JUzUFhxPJAzrWSd');
 
 const DENOMINATIONS: Record<string, bigint> = {
   '0.1': BigInt(100_000_000),
