@@ -94,6 +94,12 @@ interface PoolData {
   denomination: bigint;
 }
 
+interface PoolStats {
+  totalDeposited: string;
+  deposits: number;
+  anonymitySet: number;
+}
+
 type Tab = 'pool' | 'stealth' | 'identity';
 
 export default function AppPage() {
@@ -199,7 +205,7 @@ function PrivacyPool() {
   const [generatedNote, setGeneratedNote] = useState('');
   const [txSignature, setTxSignature] = useState('');
   const [copied, setCopied] = useState(false);
-  const [poolStats, setPoolStats] = useState<{ totalDeposited: string; deposits: number; anonymitySet: number } | null>(null);
+  const [allPoolStats, setAllPoolStats] = useState<Record<string, PoolStats>>({});
 
   useEffect(() => {
     if (wallet.publicKey && !recipient) {
@@ -207,41 +213,42 @@ function PrivacyPool() {
     }
   }, [wallet.publicKey, recipient]);
 
-  // Fetch pool stats
+  // Fetch all pool stats
   useEffect(() => {
-    const fetchStats = async () => {
-      try {
-        const denominationLamports = DENOMINATIONS[amount];
-        const [poolPda] = getPoolPDA(denominationLamports);
-        const accountInfo = await connection.getAccountInfo(poolPda);
-        
-        if (accountInfo) {
-          // Parse pool data
-          // current_index at offset 72 (4 bytes)
-          const currentIndex = accountInfo.data.readUInt32LE(72);
-          // total_deposited at offset 84 (8 bytes)
-          const totalDeposited = accountInfo.data.readBigUInt64LE(84);
-          // total_withdrawn at offset 92 (8 bytes)
-          const totalWithdrawn = accountInfo.data.readBigUInt64LE(92);
+    const fetchAllStats = async () => {
+      const stats: Record<string, PoolStats> = {};
+      
+      for (const [amt, lamports] of Object.entries(DENOMINATIONS)) {
+        try {
+          const [poolPda] = getPoolPDA(lamports);
+          const accountInfo = await connection.getAccountInfo(poolPda);
           
-          const activeDeposits = Number(totalDeposited - totalWithdrawn) / 1_000_000_000;
-          const totalDep = Number(totalDeposited) / 1_000_000_000;
-          
-          setPoolStats({
-            totalDeposited: totalDep.toFixed(2),
-            deposits: currentIndex,
-            anonymitySet: currentIndex // For MVP, anonymity set = total deposits
-          });
+          if (accountInfo) {
+            const currentIndex = accountInfo.data.readUInt32LE(72);
+            const totalDeposited = accountInfo.data.readBigUInt64LE(84);
+            const totalWithdrawn = accountInfo.data.readBigUInt64LE(92);
+            
+            const totalDep = Number(totalDeposited) / 1_000_000_000;
+            const totalWith = Number(totalWithdrawn) / 1_000_000_000;
+            
+            stats[amt] = {
+              totalDeposited: (totalDep - totalWith).toFixed(2),
+              deposits: currentIndex,
+              anonymitySet: currentIndex
+            };
+          }
+        } catch (e) {
+          console.error(`Failed to fetch stats for ${amt} pool:`, e);
         }
-      } catch (e) {
-        console.error('Failed to fetch pool stats:', e);
       }
+      
+      setAllPoolStats(stats);
     };
 
-    fetchStats();
-    const interval = setInterval(fetchStats, 10000); // Refresh every 10s
+    fetchAllStats();
+    const interval = setInterval(fetchAllStats, 15000);
     return () => clearInterval(interval);
-  }, [connection, amount]);
+  }, [connection]);
 
   const fetchPoolData = async (poolPda: PublicKey): Promise<PoolData> => {
     const accountInfo = await connection.getAccountInfo(poolPda);
@@ -426,6 +433,7 @@ function PrivacyPool() {
   };
 
   const amounts = ['0.1', '0.5', '1', '5'];
+  const currentStats = allPoolStats[amount] || { totalDeposited: '0', deposits: 0, anonymitySet: 0 };
 
   return (
     <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }}>
@@ -443,13 +451,21 @@ function PrivacyPool() {
           <>
             <h3 className="text-xl font-semibold mb-6">Deposit SOL</h3>
             <div className="mb-6">
-              <label className="block text-sm text-gray-400 mb-3">Amount (SOL)</label>
+              <label className="block text-sm text-gray-400 mb-3">Select Pool</label>
               <div className="grid grid-cols-4 gap-3">
-                {amounts.map((amt) => (
-                  <button key={amt} onClick={() => setAmount(amt)} className={`py-3 rounded-xl font-medium transition ${amount === amt ? 'bg-purple-600 text-white' : 'bg-[#0a0a0f] text-gray-400 hover:text-white border border-white/10'}`}>
-                    {amt} SOL
-                  </button>
-                ))}
+                {amounts.map((amt) => {
+                  const stats = allPoolStats[amt];
+                  return (
+                    <button 
+                      key={amt} 
+                      onClick={() => setAmount(amt)} 
+                      className={`py-3 px-2 rounded-xl font-medium transition flex flex-col items-center ${amount === amt ? 'bg-purple-600 text-white' : 'bg-[#0a0a0f] text-gray-400 hover:text-white border border-white/10'}`}
+                    >
+                      <span className="text-lg">{amt} SOL</span>
+                      <span className="text-xs opacity-70 mt-1">{stats?.anonymitySet || 0} deposits</span>
+                    </button>
+                  );
+                })}
               </div>
             </div>
 
@@ -489,7 +505,7 @@ function PrivacyPool() {
             <h3 className="text-xl font-semibold mb-6">Withdraw SOL</h3>
             
             <div className="mb-6">
-              <label className="block text-sm text-gray-400 mb-3">Amount (SOL) - Must match your deposit</label>
+              <label className="block text-sm text-gray-400 mb-3">Select Pool (must match your deposit)</label>
               <div className="grid grid-cols-4 gap-3">
                 {amounts.map((amt) => (
                   <button key={amt} onClick={() => setWithdrawAmount(amt)} className={`py-3 rounded-xl font-medium transition ${withdrawAmount === amt ? 'bg-purple-600 text-white' : 'bg-[#0a0a0f] text-gray-400 hover:text-white border border-white/10'}`}>
@@ -518,7 +534,7 @@ function PrivacyPool() {
                 placeholder="Solana wallet address" 
                 className="w-full p-4 rounded-xl bg-[#0a0a0f] border border-white/10 focus:border-purple-500 focus:outline-none font-mono text-sm" 
               />
-              <p className="text-xs text-gray-500 mt-2">Default: your connected wallet. Change for private withdrawal.</p>
+              <p className="text-xs text-gray-500 mt-2">Default: your connected wallet. Change for private withdrawal to a different address.</p>
             </div>
 
             <button onClick={handleWithdraw} disabled={isLoading || !secretNote} className="w-full py-4 rounded-xl bg-purple-600 hover:bg-purple-700 disabled:opacity-50 disabled:cursor-not-allowed font-medium transition flex items-center justify-center gap-2">
@@ -536,18 +552,36 @@ function PrivacyPool() {
         )}
       </div>
 
+      {/* Pool Stats for Selected Amount */}
       <div className="mt-8 grid grid-cols-3 gap-4">
         <div className="p-6 rounded-xl bg-[#0d0d14]/90 backdrop-blur-sm border border-white/10 text-center">
-          <p className="text-2xl font-bold text-purple-400">{poolStats?.totalDeposited || '0'} SOL</p>
-          <p className="text-sm text-gray-400 mt-1">Total Deposited</p>
+          <p className="text-2xl font-bold text-purple-400">{currentStats.totalDeposited} SOL</p>
+          <p className="text-sm text-gray-400 mt-1">Pool Balance ({amount} SOL)</p>
         </div>
         <div className="p-6 rounded-xl bg-[#0d0d14]/90 backdrop-blur-sm border border-white/10 text-center">
-          <p className="text-2xl font-bold text-purple-400">{poolStats?.deposits || 0}</p>
-          <p className="text-sm text-gray-400 mt-1">Deposits</p>
+          <p className="text-2xl font-bold text-purple-400">{currentStats.deposits}</p>
+          <p className="text-sm text-gray-400 mt-1">Total Deposits</p>
         </div>
         <div className="p-6 rounded-xl bg-[#0d0d14]/90 backdrop-blur-sm border border-white/10 text-center">
-          <p className="text-2xl font-bold text-purple-400">{poolStats?.anonymitySet || 0}</p>
+          <p className="text-2xl font-bold text-purple-400">{currentStats.anonymitySet}</p>
           <p className="text-sm text-gray-400 mt-1">Anonymity Set</p>
+        </div>
+      </div>
+
+      {/* All Pools Overview */}
+      <div className="mt-6 p-6 rounded-xl bg-[#0d0d14]/90 backdrop-blur-sm border border-white/10">
+        <h4 className="text-sm font-medium text-gray-400 mb-4">All Pools Overview</h4>
+        <div className="grid grid-cols-4 gap-3">
+          {amounts.map((amt) => {
+            const stats = allPoolStats[amt];
+            return (
+              <div key={amt} className="text-center p-3 rounded-lg bg-[#0a0a0f] border border-white/5">
+                <p className="text-lg font-bold text-white">{amt} SOL</p>
+                <p className="text-xs text-gray-500 mt-1">{stats?.totalDeposited || '0'} SOL</p>
+                <p className="text-xs text-purple-400">{stats?.anonymitySet || 0} deposits</p>
+              </div>
+            );
+          })}
         </div>
       </div>
     </motion.div>
