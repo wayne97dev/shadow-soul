@@ -113,7 +113,7 @@ export default function Home() {
       <Head>
         <title>Shadow Soul | Privacy Protocol for Solana</title>
         <meta name="description" content="Anonymous transactions on Solana through zero-knowledge proofs. Deposit, mix, and withdraw without linking your identity." />
-        <link rel="icon" href="/logo.jpg" />
+        <link rel="icon" href="/logo.png" />
       </Head>
 
       <div className="min-h-screen bg-[#0a0a0f] text-white overflow-hidden">
@@ -133,7 +133,7 @@ export default function Home() {
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-3">
                 <Image 
-                  src="/logo.jpg" 
+                  src="/logo.png" 
                   alt="Shadow Soul" 
                   width={40} 
                   height={40} 
@@ -410,7 +410,7 @@ export default function Home() {
               <div>
                 <div className="flex items-center gap-3 mb-4">
                   <Image 
-                    src="/logo.jpg" 
+                    src="/logo.png" 
                     alt="Shadow Soul" 
                     width={36} 
                     height={36} 

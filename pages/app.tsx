@@ -122,7 +122,7 @@ export default function AppPage() {
       <Head>
         <title>App | Shadow Soul</title>
         <meta name="description" content="Shadow Soul - Privacy Protocol for Solana" />
-        <link rel="icon" href="/logo.jpg" />
+        <link rel="icon" href="/logo.png" />
       </Head>
 
       <div className="min-h-screen bg-[#0a0a0f] text-white">
@@ -138,7 +138,7 @@ export default function AppPage() {
             <div className="flex items-center justify-between">
               <Link href="/" className="flex items-center gap-3 hover:opacity-80 transition">
                 <ArrowLeft className="w-5 h-5 text-gray-400" />
-                <Image src="/logo.jpg" alt="Shadow Soul" width={40} height={40} className="rounded-xl" />
+                <Image src="/logo.png" alt="Shadow Soul" width={40} height={40} className="rounded-xl" />
                 <span className="text-xl font-bold">SHADOW SOUL</span>
               </Link>
               {mounted && <WalletMultiButton className="!bg-purple-600 hover:!bg-purple-700 !rounded-xl !h-10 !text-sm" />}
