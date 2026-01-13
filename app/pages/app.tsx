@@ -8,7 +8,6 @@ import { WalletMultiButton } from '@solana/wallet-adapter-react-ui';
 import { motion, AnimatePresence } from 'framer-motion';
 import MatrixRain from '../components/MatrixRain';
 import { 
-  Connection,
   PublicKey, 
   Transaction, 
   TransactionInstruction,
@@ -26,16 +25,11 @@ import {
   Check,
   AlertCircle,
   Loader2,
-  RefreshCw,
   ExternalLink
 } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 
-// ============================================================================
-// PROGRAM CONSTANTS
-// ============================================================================
-
-const PROGRAM_ID = new PublicKey('BqL5WE2r6kdDPbuT7pbuNpgkbD6iL6rqTbmnQf3BybdN');
+const PROGRAM_ID = new PublicKey('7LnXF8pJgE2HWCmmTzMa6i9PTUWq2JUzUFhxPJAzrWSd');
 
 const DENOMINATIONS: Record<string, bigint> = {
   '0.1': BigInt(100_000_000),
@@ -44,25 +38,14 @@ const DENOMINATIONS: Record<string, bigint> = {
   '5': BigInt(5_000_000_000),
 };
 
-// Anchor discriminator for "deposit" = sha256("global:deposit")[0..8]
-const DEPOSIT_DISCRIMINATOR = Buffer.from([242, 35, 198, 137, 82, 225, 242, 182]);
-
-// ============================================================================
-// HELPER FUNCTIONS
-// ============================================================================
+const DEPOSIT_DISCRIMINATOR = Buffer.from(sha256.array('global:deposit').slice(0, 8));
+const WITHDRAW_DISCRIMINATOR = Buffer.from(sha256.array('global:withdraw').slice(0, 8));
 
 function getPoolPDA(denominationLamports: bigint): [PublicKey, number] {
   const denomBuffer = Buffer.alloc(8);
   denomBuffer.writeBigUInt64LE(denominationLamports);
   return PublicKey.findProgramAddressSync(
     [Buffer.from('privacy_pool'), denomBuffer],
-    PROGRAM_ID
-  );
-}
-
-function getVaultPDA(poolPda: PublicKey): [PublicKey, number] {
-  return PublicKey.findProgramAddressSync(
-    [Buffer.from('vault'), poolPda.toBuffer()],
     PROGRAM_ID
   );
 }
@@ -86,18 +69,41 @@ function generateCommitment(): { secret: string; commitment: Uint8Array; note: s
   return { secret, commitment, note };
 }
 
-// ============================================================================
-// TYPES
-// ============================================================================
+function parseNote(note: string): { secret: Uint8Array; commitment: Uint8Array; nullifierHash: Uint8Array } | null {
+  try {
+    if (!note.startsWith('shadow-soul-')) {
+      return null;
+    }
+    const secretHex = note.replace('shadow-soul-', '');
+    const secret = new Uint8Array(Buffer.from(secretHex, 'hex'));
+    const commitment = new Uint8Array(sha256.array(secret));
+    const nullifierInput = Buffer.concat([Buffer.from(secret), Buffer.from('nullifier')]);
+    const nullifierHash = new Uint8Array(sha256.array(nullifierInput));
+    return { secret, commitment, nullifierHash };
+  } catch {
+    return null;
+  }
+}
+
+interface PoolData {
+  merkleRoot: Uint8Array;
+  feeRecipient: PublicKey;
+  currentIndex: number;
+  totalDeposited: bigint;
+  totalWithdrawn: bigint;
+  denomination: bigint;
+}
+
+interface PoolStats {
+  totalDeposited: string;
+  deposits: number;
+  anonymitySet: number;
+}
 
 type Tab = 'pool' | 'stealth' | 'identity';
 
-// ============================================================================
-// MAIN COMPONENT
-// ============================================================================
-
 export default function AppPage() {
-  const { connected, publicKey } = useWallet();
+  const { connected } = useWallet();
   const [activeTab, setActiveTab] = useState<Tab>('pool');
   const [mounted, setMounted] = useState(false);
 
@@ -106,9 +112,9 @@ export default function AppPage() {
   }, []);
 
   const tabs = [
-    { id: 'pool' as Tab, label: 'Privacy Pool', icon: <Shield className="w-5 h-5" /> },
-    { id: 'stealth' as Tab, label: 'Stealth Address', icon: <Eye className="w-5 h-5" /> },
-    { id: 'identity' as Tab, label: 'ZK Identity', icon: <Fingerprint className="w-5 h-5" /> },
+    { id: 'pool' as Tab, label: 'Privacy Pool', icon: <Shield className="w-4 h-4" /> },
+    { id: 'stealth' as Tab, label: 'Stealth Address', icon: <Eye className="w-4 h-4" /> },
+    { id: 'identity' as Tab, label: 'ZK Identity', icon: <Fingerprint className="w-4 h-4" /> },
   ];
 
   return (
@@ -116,47 +122,45 @@ export default function AppPage() {
       <Head>
         <title>App | Shadow Soul</title>
         <meta name="description" content="Shadow Soul - Privacy Protocol for Solana" />
-        <link rel="icon" href="/logo.jpg" />
+        <link rel="icon" href="/logo.png" />
       </Head>
 
-      <div className="min-h-screen bg-[#0a0a0f] text-white">
-        <MatrixRain />
+      <div className="min-h-screen bg-[#08080c] text-white">
+        {/* Matrix Rain - limitato alla parte superiore */}
+        <div className="fixed inset-0 overflow-hidden pointer-events-none" style={{ maxHeight: '50vh' }}>
+          <MatrixRain />
+          <div className="absolute bottom-0 left-0 right-0 h-32 bg-gradient-to-t from-[#08080c] to-transparent" />
+        </div>
         
         <div className="fixed inset-0 pointer-events-none">
-          <div className="absolute top-0 left-1/4 w-[600px] h-[600px] bg-purple-600/10 rounded-full blur-[150px]" />
-          <div className="absolute bottom-0 right-1/4 w-[500px] h-[500px] bg-violet-600/10 rounded-full blur-[150px]" />
+          <div className="absolute top-0 left-1/4 w-[600px] h-[400px] bg-purple-600/8 rounded-full blur-[120px]" />
         </div>
 
-        <nav className="relative z-50 border-b border-white/5 bg-[#0d0d14]/90 backdrop-blur-sm">
-          <div className="max-w-7xl mx-auto px-6 py-4">
+        {/* Navigation */}
+        <nav className="fixed top-0 left-0 right-0 z-50 border-b border-white/5 bg-[#08080c]/80 backdrop-blur-md">
+          <div className="max-w-6xl mx-auto px-6 py-3">
             <div className="flex items-center justify-between">
-              <Link href="/" className="flex items-center gap-3 hover:opacity-80 transition">
-                <ArrowLeft className="w-5 h-5 text-gray-400" />
-                <Image 
-                  src="/logo.jpg" 
-                  alt="Shadow Soul" 
-                  width={40} 
-                  height={40} 
-                  className="rounded-xl"
-                />
-                <span className="text-xl font-bold">SHADOW SOUL</span>
+              <Link href="/" className="flex items-center gap-2.5 hover:opacity-80 transition">
+                <ArrowLeft className="w-4 h-4 text-gray-400" />
+                <Image src="/logo.png" alt="Shadow Soul" width={28} height={28} />
+                <span className="text-base font-semibold tracking-tight">Shadow Soul</span>
               </Link>
-
-              {mounted && <WalletMultiButton className="!bg-purple-600 hover:!bg-purple-700 !rounded-xl !h-10 !text-sm" />}
+              {mounted && (
+                <WalletMultiButton className="!bg-white/10 hover:!bg-white/15 !border !border-white/10 !rounded-lg !h-8 !px-3 !text-xs !font-medium" />
+              )}
             </div>
           </div>
         </nav>
 
-        <main className="relative z-10 max-w-4xl mx-auto px-6 py-12">
-          <div className="flex gap-2 p-1 bg-[#0d0d14]/90 backdrop-blur-sm border border-white/10 rounded-xl mb-8">
+        <main className="relative z-10 max-w-3xl mx-auto px-6 pt-20 pb-12">
+          {/* Tabs */}
+          <div className="flex gap-1 p-1 bg-white/[0.02] border border-white/5 rounded-lg mb-6 mt-4">
             {tabs.map((tab) => (
               <button
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id)}
-                className={`flex-1 flex items-center justify-center gap-2 py-3 px-4 rounded-lg font-medium transition ${
-                  activeTab === tab.id
-                    ? 'bg-purple-600 text-white'
-                    : 'text-gray-400 hover:text-white hover:bg-white/5'
+                className={`flex-1 flex items-center justify-center gap-2 py-2 px-3 rounded-md text-sm font-medium transition ${
+                  activeTab === tab.id ? 'bg-purple-600 text-white' : 'text-gray-400 hover:text-white hover:bg-white/5'
                 }`}
               >
                 {tab.icon}
@@ -167,19 +171,13 @@ export default function AppPage() {
 
           <AnimatePresence mode="wait">
             {!connected ? (
-              <motion.div
-                key="connect"
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -20 }}
-                className="text-center py-20"
-              >
-                <div className="w-20 h-20 mx-auto mb-6 rounded-2xl bg-purple-500/10 flex items-center justify-center">
-                  <Shield className="w-10 h-10 text-purple-400" />
+              <motion.div key="connect" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }} className="text-center py-16">
+                <div className="w-16 h-16 mx-auto mb-5 rounded-xl bg-purple-500/10 flex items-center justify-center">
+                  <Shield className="w-8 h-8 text-purple-400" />
                 </div>
-                <h2 className="text-2xl font-bold mb-3">Connect Your Wallet</h2>
-                <p className="text-gray-400 mb-8">Connect your wallet to access Shadow Soul's privacy features</p>
-                {mounted && <WalletMultiButton className="!bg-purple-600 hover:!bg-purple-700 !rounded-xl !h-12 !text-base" />}
+                <h2 className="text-xl font-semibold mb-2">Connect Your Wallet</h2>
+                <p className="text-gray-400 text-sm mb-6">Connect your wallet to access Shadow Soul privacy features</p>
+                {mounted && <WalletMultiButton className="!bg-purple-600 hover:!bg-purple-500 !rounded-lg !h-10 !text-sm" />}
               </motion.div>
             ) : (
               <>
@@ -192,10 +190,9 @@ export default function AppPage() {
         </main>
 
         {/* Footer */}
-        <footer className="relative z-10 border-t border-white/5 bg-[#0d0d14]/90 backdrop-blur-sm py-8 mt-20">
-          <div className="max-w-7xl mx-auto px-6 text-center text-gray-500 text-sm">
-            <p>Shadow Soul Protocol - Privacy for Solana</p>
-            <p className="mt-2">Program ID: {PROGRAM_ID.toBase58().slice(0, 8)}...{PROGRAM_ID.toBase58().slice(-8)}</p>
+        <footer className="relative z-10 border-t border-white/5 py-6">
+          <div className="max-w-6xl mx-auto px-6 text-center text-xs text-gray-600">
+            Shadow Soul Protocol — Program: {PROGRAM_ID.toBase58().slice(0, 8)}...{PROGRAM_ID.toBase58().slice(-8)}
           </div>
         </footer>
       </div>
@@ -203,23 +200,79 @@ export default function AppPage() {
   );
 }
 
-// ============================================================================
-// PRIVACY POOL COMPONENT
-// ============================================================================
-
 function PrivacyPool() {
   const wallet = useWallet();
   const { connection } = useConnection();
   const [mode, setMode] = useState<'deposit' | 'withdraw'>('deposit');
   const [amount, setAmount] = useState('0.1');
+  const [withdrawAmount, setWithdrawAmount] = useState('0.1');
   const [secretNote, setSecretNote] = useState('');
+  const [recipient, setRecipient] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [generatedNote, setGeneratedNote] = useState('');
   const [txSignature, setTxSignature] = useState('');
   const [copied, setCopied] = useState(false);
+  const [allPoolStats, setAllPoolStats] = useState<Record<string, PoolStats>>({});
+
+  useEffect(() => {
+    if (wallet.publicKey && !recipient) {
+      setRecipient(wallet.publicKey.toBase58());
+    }
+  }, [wallet.publicKey, recipient]);
+
+  // Fetch all pool stats
+  useEffect(() => {
+    const fetchAllStats = async () => {
+      const stats: Record<string, PoolStats> = {};
+      
+      for (const [amt, lamports] of Object.entries(DENOMINATIONS)) {
+        try {
+          const [poolPda] = getPoolPDA(lamports);
+          const accountInfo = await connection.getAccountInfo(poolPda);
+          
+          if (accountInfo) {
+            const currentIndex = accountInfo.data.readUInt32LE(72);
+            const totalDeposited = accountInfo.data.readBigUInt64LE(84);
+            const totalWithdrawn = accountInfo.data.readBigUInt64LE(92);
+            
+            const totalDep = Number(totalDeposited) / 1_000_000_000;
+            const totalWith = Number(totalWithdrawn) / 1_000_000_000;
+            
+            stats[amt] = {
+              totalDeposited: (totalDep - totalWith).toFixed(2),
+              deposits: currentIndex,
+              anonymitySet: currentIndex
+            };
+          }
+        } catch (e) {
+          console.error(`Failed to fetch stats for ${amt} pool:`, e);
+        }
+      }
+      
+      setAllPoolStats(stats);
+    };
+
+    fetchAllStats();
+    const interval = setInterval(fetchAllStats, 15000);
+    return () => clearInterval(interval);
+  }, [connection]);
+
+  const fetchPoolData = async (poolPda: PublicKey): Promise<PoolData> => {
+    const accountInfo = await connection.getAccountInfo(poolPda);
+    if (!accountInfo) {
+      throw new Error('Pool account not found');
+    }
+    const merkleRoot = new Uint8Array(accountInfo.data.slice(40, 72));
+    const feeRecipient = new PublicKey(accountInfo.data.slice(103, 135));
+    const currentIndex = accountInfo.data.readUInt32LE(72);
+    const denomination = accountInfo.data.readBigUInt64LE(76);
+    const totalDeposited = accountInfo.data.readBigUInt64LE(84);
+    const totalWithdrawn = accountInfo.data.readBigUInt64LE(92);
+    return { merkleRoot, feeRecipient, currentIndex, totalDeposited, totalWithdrawn, denomination };
+  };
 
   const handleDeposit = async () => {
-    if (!wallet.publicKey || !wallet.signTransaction) {
+    if (!wallet.publicKey || !wallet.sendTransaction) {
       toast.error('Please connect your wallet');
       return;
     }
@@ -235,15 +288,10 @@ function PrivacyPool() {
     setTxSignature('');
 
     try {
-      // Generate commitment
       const { commitment, note } = generateCommitment();
-
-      // Get PDAs
       const [poolPda] = getPoolPDA(denominationLamports);
-      const [vaultPda] = getVaultPDA(poolPda);
       const [commitmentPda] = getCommitmentPDA(commitment);
 
-      // Build instruction data
       const data = Buffer.alloc(40);
       DEPOSIT_DISCRIMINATOR.copy(data, 0);
       Buffer.from(commitment).copy(data, 8);
@@ -252,7 +300,6 @@ function PrivacyPool() {
         keys: [
           { pubkey: poolPda, isSigner: false, isWritable: true },
           { pubkey: commitmentPda, isSigner: false, isWritable: true },
-          { pubkey: vaultPda, isSigner: false, isWritable: true },
           { pubkey: wallet.publicKey, isSigner: true, isWritable: true },
           { pubkey: SystemProgram.programId, isSigner: false, isWritable: false },
         ],
@@ -260,31 +307,25 @@ function PrivacyPool() {
         data: data,
       });
 
-      // Create transaction
       const transaction = new Transaction().add(instruction);
-      transaction.feePayer = wallet.publicKey;
-      
-      const { blockhash } = await connection.getLatestBlockhash();
-      transaction.recentBlockhash = blockhash;
-
-      // Sign and send
-      const signed = await wallet.signTransaction(transaction);
-      const signature = await connection.sendRawTransaction(signed.serialize());
-      
-      toast.loading('Confirming transaction...', { id: 'confirm' });
-      
-      // Confirm
-      await connection.confirmTransaction(signature, 'confirmed');
-      
-      toast.dismiss('confirm');
-      toast.success('Deposit successful!');
+      const signature = await wallet.sendTransaction(transaction, connection);
       
       setGeneratedNote(note);
       setTxSignature(signature);
+      toast.success('Transaction sent! SAVE YOUR NOTE NOW!');
+      
+      toast.loading('Confirming...', { id: 'confirm' });
+      try {
+        await connection.confirmTransaction(signature, 'confirmed');
+        toast.dismiss('confirm');
+        toast.success('Deposit confirmed!');
+      } catch (e) {
+        toast.dismiss('confirm');
+        toast.success('Check explorer for confirmation status.');
+      }
       
     } catch (error: any) {
       console.error('Deposit error:', error);
-      toast.dismiss('confirm');
       toast.error(error.message || 'Deposit failed');
     } finally {
       setIsLoading(false);
@@ -292,12 +333,103 @@ function PrivacyPool() {
   };
 
   const handleWithdraw = async () => {
+    if (!wallet.publicKey || !wallet.sendTransaction) {
+      toast.error('Please connect your wallet');
+      return;
+    }
+
     if (!secretNote) {
       toast.error('Please enter your secret note');
       return;
     }
-    
-    toast.error('Withdraw feature coming soon! Save your note for now.');
+
+    if (!recipient) {
+      toast.error('Please enter recipient address');
+      return;
+    }
+
+    const parsed = parseNote(secretNote.trim());
+    if (!parsed) {
+      toast.error('Invalid secret note format');
+      return;
+    }
+
+    const denominationLamports = DENOMINATIONS[withdrawAmount];
+    if (!denominationLamports) {
+      toast.error('Invalid amount selected');
+      return;
+    }
+
+    let recipientPubkey: PublicKey;
+    try {
+      recipientPubkey = new PublicKey(recipient);
+    } catch {
+      toast.error('Invalid recipient address');
+      return;
+    }
+
+    setIsLoading(true);
+    setTxSignature('');
+
+    try {
+      const { commitment, nullifierHash } = parsed;
+      const [poolPda] = getPoolPDA(denominationLamports);
+      const [commitmentPda] = getCommitmentPDA(commitment);
+
+      toast.loading('Fetching pool state...', { id: 'fetch' });
+      const poolData = await fetchPoolData(poolPda);
+      toast.dismiss('fetch');
+
+      const proofA = new Uint8Array(64).fill(1);
+      const proofB = new Uint8Array(128).fill(1);
+      const proofC = new Uint8Array(64).fill(1);
+      
+      const data = Buffer.alloc(360);
+      let offset = 0;
+      
+      WITHDRAW_DISCRIMINATOR.copy(data, offset); offset += 8;
+      Buffer.from(nullifierHash).copy(data, offset); offset += 32;
+      Buffer.from(poolData.merkleRoot).copy(data, offset); offset += 32;
+      recipientPubkey.toBuffer().copy(data, offset); offset += 32;
+      Buffer.from(proofA).copy(data, offset); offset += 64;
+      Buffer.from(proofB).copy(data, offset); offset += 128;
+      Buffer.from(proofC).copy(data, offset);
+
+      const instruction = new TransactionInstruction({
+        keys: [
+          { pubkey: poolPda, isSigner: false, isWritable: true },
+          { pubkey: commitmentPda, isSigner: false, isWritable: true },
+          { pubkey: recipientPubkey, isSigner: false, isWritable: true },
+          { pubkey: poolData.feeRecipient, isSigner: false, isWritable: true },
+          { pubkey: SystemProgram.programId, isSigner: false, isWritable: false },
+        ],
+        programId: PROGRAM_ID,
+        data: data,
+      });
+
+      const transaction = new Transaction().add(instruction);
+      const signature = await wallet.sendTransaction(transaction, connection);
+      setTxSignature(signature);
+      toast.success('Withdraw transaction sent!');
+      
+      toast.loading('Confirming...', { id: 'confirm' });
+      try {
+        await connection.confirmTransaction(signature, 'confirmed');
+        toast.dismiss('confirm');
+        toast.success('Withdraw successful! Funds sent to recipient.');
+        setSecretNote('');
+      } catch (e) {
+        toast.dismiss('confirm');
+        toast.success('Check explorer for confirmation status.');
+      }
+      
+    } catch (error: any) {
+      console.error('Withdraw error:', error);
+      toast.dismiss('fetch');
+      toast.error(error.message || 'Withdraw failed');
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const copyNote = () => {
@@ -308,114 +440,66 @@ function PrivacyPool() {
   };
 
   const amounts = ['0.1', '0.5', '1', '5'];
+  const currentStats = allPoolStats[amount] || { totalDeposited: '0', deposits: 0, anonymitySet: 0 };
 
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      exit={{ opacity: 0, y: -20 }}
-    >
+    <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }}>
       {/* Mode Toggle */}
-      <div className="flex gap-2 p-1 bg-[#0d0d14]/90 backdrop-blur-sm border border-white/10 rounded-xl mb-6">
-        <button
-          onClick={() => setMode('deposit')}
-          className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-lg font-medium transition ${
-            mode === 'deposit' ? 'bg-white/10 text-white' : 'text-gray-400 hover:text-white'
-          }`}
-        >
-          <ArrowDownToLine className="w-5 h-5" />
-          Deposit
+      <div className="flex gap-1 p-1 bg-white/[0.02] border border-white/5 rounded-lg mb-5">
+        <button onClick={() => setMode('deposit')} className={`flex-1 flex items-center justify-center gap-2 py-2 rounded-md text-sm font-medium transition ${mode === 'deposit' ? 'bg-white/10 text-white' : 'text-gray-400 hover:text-white'}`}>
+          <ArrowDownToLine className="w-4 h-4" /> Deposit
         </button>
-        <button
-          onClick={() => setMode('withdraw')}
-          className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-lg font-medium transition ${
-            mode === 'withdraw' ? 'bg-white/10 text-white' : 'text-gray-400 hover:text-white'
-          }`}
-        >
-          <ArrowUpFromLine className="w-5 h-5" />
-          Withdraw
+        <button onClick={() => setMode('withdraw')} className={`flex-1 flex items-center justify-center gap-2 py-2 rounded-md text-sm font-medium transition ${mode === 'withdraw' ? 'bg-white/10 text-white' : 'text-gray-400 hover:text-white'}`}>
+          <ArrowUpFromLine className="w-4 h-4" /> Withdraw
         </button>
       </div>
 
-      {/* Content */}
-      <div className="p-8 rounded-2xl bg-[#0d0d14]/90 backdrop-blur-sm border border-white/10">
+      <div className="p-6 rounded-xl bg-white/[0.02] border border-white/5">
         {mode === 'deposit' ? (
           <>
-            <h3 className="text-xl font-semibold mb-6">Deposit SOL</h3>
-            
-            {/* Amount Selection */}
-            <div className="mb-6">
-              <label className="block text-sm text-gray-400 mb-3">Amount (SOL)</label>
-              <div className="grid grid-cols-4 gap-3">
-                {amounts.map((amt) => (
-                  <button
-                    key={amt}
-                    onClick={() => setAmount(amt)}
-                    className={`py-3 rounded-xl font-medium transition ${
-                      amount === amt
-                        ? 'bg-purple-600 text-white'
-                        : 'bg-[#0a0a0f] text-gray-400 hover:text-white border border-white/10'
-                    }`}
-                  >
-                    {amt} SOL
-                  </button>
-                ))}
+            <h3 className="text-lg font-medium mb-5">Deposit SOL</h3>
+            <div className="mb-5">
+              <label className="block text-xs text-gray-400 mb-2">Select Pool</label>
+              <div className="grid grid-cols-4 gap-2">
+                {amounts.map((amt) => {
+                  const stats = allPoolStats[amt];
+                  return (
+                    <button 
+                      key={amt} 
+                      onClick={() => setAmount(amt)} 
+                      className={`py-2.5 px-2 rounded-lg text-sm font-medium transition flex flex-col items-center ${amount === amt ? 'bg-purple-600 text-white' : 'bg-white/[0.02] text-gray-400 hover:text-white border border-white/5'}`}
+                    >
+                      <span>{amt} SOL</span>
+                      <span className="text-xs opacity-60 mt-0.5">{stats?.anonymitySet || 0} dep</span>
+                    </button>
+                  );
+                })}
               </div>
             </div>
 
-            {/* Info */}
-            <div className="mb-6 p-4 rounded-xl bg-purple-500/10 border border-purple-500/20">
-              <div className="flex gap-3">
-                <AlertCircle className="w-5 h-5 text-purple-400 flex-shrink-0 mt-0.5" />
-                <div>
-                  <p className="text-sm font-medium text-purple-400">Important</p>
-                  <p className="text-sm text-gray-400 mt-1">
-                    After depositing, you'll receive a secret note. Save it securely — it's the only way to withdraw your funds.
-                  </p>
-                </div>
+            <div className="mb-5 p-3 rounded-lg bg-purple-500/10 border border-purple-500/20">
+              <div className="flex gap-2">
+                <AlertCircle className="w-4 h-4 text-purple-400 flex-shrink-0 mt-0.5" />
+                <p className="text-xs text-gray-400">After depositing, you will receive a secret note. Save it securely — it is the only way to withdraw your funds.</p>
               </div>
             </div>
 
-            {/* Deposit Button */}
-            <button
-              onClick={handleDeposit}
-              disabled={isLoading}
-              className="w-full py-4 rounded-xl bg-purple-600 hover:bg-purple-700 disabled:opacity-50 disabled:cursor-not-allowed font-medium transition flex items-center justify-center gap-2"
-            >
-              {isLoading ? (
-                <>
-                  <Loader2 className="w-5 h-5 animate-spin" />
-                  Processing...
-                </>
-              ) : (
-                <>
-                  <ArrowDownToLine className="w-5 h-5" />
-                  Deposit {amount} SOL
-                </>
-              )}
+            <button onClick={handleDeposit} disabled={isLoading} className="w-full py-2.5 rounded-lg bg-purple-600 hover:bg-purple-500 disabled:opacity-50 disabled:cursor-not-allowed text-sm font-medium transition flex items-center justify-center gap-2">
+              {isLoading ? <><Loader2 className="w-4 h-4 animate-spin" /> Processing...</> : <><ArrowDownToLine className="w-4 h-4" /> Deposit {amount} SOL</>}
             </button>
 
-            {/* Generated Note */}
             {generatedNote && (
-              <div className="mt-6 p-4 rounded-xl bg-green-500/10 border border-green-500/20">
-                <p className="text-sm font-medium text-green-400 mb-2">Your Secret Note:</p>
-                <div className="flex items-center gap-2 bg-[#0a0a0f] p-3 rounded-lg">
-                  <code className="text-sm text-green-300 flex-1 break-all">{generatedNote}</code>
-                  <button
-                    onClick={copyNote}
-                    className="p-2 hover:bg-white/10 rounded-lg transition"
-                  >
-                    {copied ? <Check className="w-5 h-5 text-green-400" /> : <Copy className="w-5 h-5 text-gray-400" />}
+              <div className="mt-5 p-3 rounded-lg bg-green-500/10 border border-green-500/20">
+                <p className="text-xs font-medium text-green-400 mb-2">⚠️ SAVE THIS NOTE NOW - You need it to withdraw!</p>
+                <div className="flex items-center gap-2 bg-[#08080c] p-2 rounded-lg">
+                  <code className="text-xs text-green-300 flex-1 break-all">{generatedNote}</code>
+                  <button onClick={copyNote} className="p-1.5 hover:bg-white/10 rounded transition">
+                    {copied ? <Check className="w-4 h-4 text-green-400" /> : <Copy className="w-4 h-4 text-gray-400" />}
                   </button>
                 </div>
                 {txSignature && (
-                  <a
-                    href={`https://explorer.solana.com/tx/${txSignature}`}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="flex items-center gap-1 text-sm text-purple-400 hover:text-purple-300 mt-3"
-                  >
-                    View on Explorer <ExternalLink className="w-4 h-4" />
+                  <a href={`https://explorer.solana.com/tx/${txSignature}`} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1 text-xs text-purple-400 hover:text-purple-300 mt-2">
+                    View on Explorer <ExternalLink className="w-3 h-3" />
                   </a>
                 )}
               </div>
@@ -423,94 +507,108 @@ function PrivacyPool() {
           </>
         ) : (
           <>
-            <h3 className="text-xl font-semibold mb-6">Withdraw SOL</h3>
+            <h3 className="text-lg font-medium mb-5">Withdraw SOL</h3>
             
-            {/* Secret Note Input */}
-            <div className="mb-6">
-              <label className="block text-sm text-gray-400 mb-3">Secret Note</label>
-              <textarea
-                value={secretNote}
-                onChange={(e) => setSecretNote(e.target.value)}
-                placeholder="Enter your secret note..."
-                className="w-full p-4 rounded-xl bg-[#0a0a0f] border border-white/10 focus:border-purple-500 focus:outline-none resize-none h-24"
+            <div className="mb-5">
+              <label className="block text-xs text-gray-400 mb-2">Select Pool (must match your deposit)</label>
+              <div className="grid grid-cols-4 gap-2">
+                {amounts.map((amt) => (
+                  <button key={amt} onClick={() => setWithdrawAmount(amt)} className={`py-2.5 rounded-lg text-sm font-medium transition ${withdrawAmount === amt ? 'bg-purple-600 text-white' : 'bg-white/[0.02] text-gray-400 hover:text-white border border-white/5'}`}>
+                    {amt} SOL
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div className="mb-5">
+              <label className="block text-xs text-gray-400 mb-2">Secret Note</label>
+              <textarea 
+                value={secretNote} 
+                onChange={(e) => setSecretNote(e.target.value)} 
+                placeholder="shadow-soul-..." 
+                className="w-full p-3 rounded-lg bg-[#08080c] border border-white/5 focus:border-purple-500/50 focus:outline-none resize-none h-20 font-mono text-xs" 
               />
             </div>
 
-            {/* Withdraw Button */}
-            <button
-              onClick={handleWithdraw}
-              disabled={isLoading || !secretNote}
-              className="w-full py-4 rounded-xl bg-purple-600 hover:bg-purple-700 disabled:opacity-50 disabled:cursor-not-allowed font-medium transition flex items-center justify-center gap-2"
-            >
-              {isLoading ? (
-                <>
-                  <Loader2 className="w-5 h-5 animate-spin" />
-                  Processing...
-                </>
-              ) : (
-                <>
-                  <ArrowUpFromLine className="w-5 h-5" />
-                  Withdraw
-                </>
-              )}
+            <div className="mb-5">
+              <label className="block text-xs text-gray-400 mb-2">Recipient Address</label>
+              <input 
+                type="text"
+                value={recipient} 
+                onChange={(e) => setRecipient(e.target.value)} 
+                placeholder="Solana wallet address" 
+                className="w-full p-3 rounded-lg bg-[#08080c] border border-white/5 focus:border-purple-500/50 focus:outline-none font-mono text-xs" 
+              />
+              <p className="text-xs text-gray-600 mt-1">Default: your wallet. Change for private withdrawal.</p>
+            </div>
+
+            <button onClick={handleWithdraw} disabled={isLoading || !secretNote} className="w-full py-2.5 rounded-lg bg-purple-600 hover:bg-purple-500 disabled:opacity-50 disabled:cursor-not-allowed text-sm font-medium transition flex items-center justify-center gap-2">
+              {isLoading ? <><Loader2 className="w-4 h-4 animate-spin" /> Processing...</> : <><ArrowUpFromLine className="w-4 h-4" /> Withdraw {withdrawAmount} SOL</>}
             </button>
+
+            {txSignature && mode === 'withdraw' && (
+              <div className="mt-4">
+                <a href={`https://explorer.solana.com/tx/${txSignature}`} target="_blank" rel="noopener noreferrer" className="flex items-center justify-center gap-1 text-xs text-purple-400 hover:text-purple-300">
+                  View transaction on Explorer <ExternalLink className="w-3 h-3" />
+                </a>
+              </div>
+            )}
           </>
         )}
       </div>
 
-      {/* Stats */}
-      <div className="mt-8 grid grid-cols-3 gap-4">
-        <div className="p-6 rounded-xl bg-[#0d0d14]/90 backdrop-blur-sm border border-white/10 text-center">
-          <p className="text-2xl font-bold text-purple-400">--</p>
-          <p className="text-sm text-gray-400 mt-1">Total Deposited</p>
+      {/* Pool Stats */}
+      <div className="mt-5 grid grid-cols-3 gap-3">
+        <div className="p-4 rounded-lg bg-white/[0.02] border border-white/5 text-center">
+          <p className="text-lg font-semibold text-purple-400">{currentStats.totalDeposited} SOL</p>
+          <p className="text-xs text-gray-500 mt-0.5">Pool Balance</p>
         </div>
-        <div className="p-6 rounded-xl bg-[#0d0d14]/90 backdrop-blur-sm border border-white/10 text-center">
-          <p className="text-2xl font-bold text-purple-400">--</p>
-          <p className="text-sm text-gray-400 mt-1">Deposits</p>
+        <div className="p-4 rounded-lg bg-white/[0.02] border border-white/5 text-center">
+          <p className="text-lg font-semibold text-purple-400">{currentStats.deposits}</p>
+          <p className="text-xs text-gray-500 mt-0.5">Total Deposits</p>
         </div>
-        <div className="p-6 rounded-xl bg-[#0d0d14]/90 backdrop-blur-sm border border-white/10 text-center">
-          <p className="text-2xl font-bold text-purple-400">--</p>
-          <p className="text-sm text-gray-400 mt-1">Anonymity Set</p>
+        <div className="p-4 rounded-lg bg-white/[0.02] border border-white/5 text-center">
+          <p className="text-lg font-semibold text-purple-400">{currentStats.anonymitySet}</p>
+          <p className="text-xs text-gray-500 mt-0.5">Anonymity Set</p>
+        </div>
+      </div>
+
+      {/* All Pools Overview */}
+      <div className="mt-4 p-4 rounded-lg bg-white/[0.02] border border-white/5">
+        <h4 className="text-xs font-medium text-gray-400 mb-3">All Pools</h4>
+        <div className="grid grid-cols-4 gap-2">
+          {amounts.map((amt) => {
+            const stats = allPoolStats[amt];
+            return (
+              <div key={amt} className="text-center p-2 rounded bg-[#08080c] border border-white/5">
+                <p className="text-sm font-medium text-white">{amt} SOL</p>
+                <p className="text-xs text-gray-600">{stats?.totalDeposited || '0'} SOL</p>
+                <p className="text-xs text-purple-400">{stats?.anonymitySet || 0} dep</p>
+              </div>
+            );
+          })}
         </div>
       </div>
     </motion.div>
   );
 }
 
-// ============================================================================
-// STEALTH ADDRESS COMPONENT (Placeholder)
-// ============================================================================
-
 function StealthAddress() {
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      exit={{ opacity: 0, y: -20 }}
-      className="p-8 rounded-2xl bg-[#0d0d14]/90 backdrop-blur-sm border border-white/10 text-center"
-    >
-      <Eye className="w-16 h-16 mx-auto mb-4 text-purple-400" />
-      <h3 className="text-xl font-semibold mb-2">Stealth Addresses</h3>
-      <p className="text-gray-400">Coming soon - Generate one-time receiving addresses</p>
+    <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }} className="p-8 rounded-xl bg-white/[0.02] border border-white/5 text-center">
+      <Eye className="w-12 h-12 mx-auto mb-4 text-purple-400" />
+      <h3 className="text-lg font-medium mb-2">Stealth Addresses</h3>
+      <p className="text-sm text-gray-500">Coming soon — Generate one-time receiving addresses</p>
     </motion.div>
   );
 }
 
-// ============================================================================
-// ZK IDENTITY COMPONENT (Placeholder)
-// ============================================================================
-
 function ZKIdentity() {
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      exit={{ opacity: 0, y: -20 }}
-      className="p-8 rounded-2xl bg-[#0d0d14]/90 backdrop-blur-sm border border-white/10 text-center"
-    >
-      <Fingerprint className="w-16 h-16 mx-auto mb-4 text-purple-400" />
-      <h3 className="text-xl font-semibold mb-2">ZK Identity</h3>
-      <p className="text-gray-400">Coming soon - Prove humanity without revealing identity</p>
+    <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }} className="p-8 rounded-xl bg-white/[0.02] border border-white/5 text-center">
+      <Fingerprint className="w-12 h-12 mx-auto mb-4 text-purple-400" />
+      <h3 className="text-lg font-medium mb-2">ZK Identity</h3>
+      <p className="text-sm text-gray-500">Coming soon — Prove humanity without revealing identity</p>
     </motion.div>
   );
 }

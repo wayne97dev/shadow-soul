@@ -9,7 +9,7 @@ import { Toaster } from 'react-hot-toast';
 import '@solana/wallet-adapter-react-ui/styles.css';
 
 export default function App({ Component, pageProps }: AppProps) {
-  const endpoint = 'https://api.mainnet-beta.solana.com';
+  const endpoint = typeof window !== 'undefined' ? `${window.location.origin}/api/rpc` : 'https://api.mainnet-beta.solana.com';
 
   const wallets = useMemo(
     () => [

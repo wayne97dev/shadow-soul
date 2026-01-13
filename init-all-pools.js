@@ -9,10 +9,13 @@ const wallet = Keypair.fromSecretKey(
   Uint8Array.from(JSON.parse(fs.readFileSync(process.env.HOME + '/.config/solana/mainnet-wallet.json', 'utf-8')))
 );
 
-async function initPool() {
-  const denomination = BigInt(100_000_000);
-  const feeBps = 30;
+const POOLS = [
+  { name: '0.5 SOL', lamports: BigInt(500_000_000) },
+  { name: '1 SOL', lamports: BigInt(1_000_000_000) },
+  { name: '5 SOL', lamports: BigInt(5_000_000_000) },
+];
 
+async function initPool(denomination, name) {
   const denomBuffer = Buffer.alloc(8);
   denomBuffer.writeBigUInt64LE(denomination);
 
@@ -21,9 +24,15 @@ async function initPool() {
     PROGRAM_ID
   );
 
-  console.log('Pool PDA:', poolPda.toBase58());
+  // Check if already exists
+  const existing = await connection.getAccountInfo(poolPda);
+  if (existing) {
+    console.log(`Pool ${name} already exists at ${poolPda.toBase58()}`);
+    return;
+  }
 
   const discriminator = crypto.createHash('sha256').update('global:initialize').digest().slice(0, 8);
+  const feeBps = 30;
 
   const data = Buffer.alloc(18);
   discriminator.copy(data, 0);
@@ -42,7 +51,15 @@ async function initPool() {
 
   const tx = new Transaction().add(ix);
   const sig = await sendAndConfirmTransaction(connection, tx, [wallet]);
-  console.log('Pool initialized! TX:', sig);
+  console.log(`Pool ${name} initialized! PDA: ${poolPda.toBase58()} TX: ${sig}`);
 }
 
-initPool().catch(console.error);
+async function main() {
+  console.log('Initializing pools...\n');
+  for (const pool of POOLS) {
+    await initPool(pool.lamports, pool.name);
+  }
+  console.log('\nDone!');
+}
+
+main().catch(console.error);

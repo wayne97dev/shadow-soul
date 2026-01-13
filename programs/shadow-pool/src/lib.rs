@@ -1,18 +1,12 @@
 use anchor_lang::prelude::*;
 use anchor_lang::system_program;
 
-declare_id!("BqL5WE2r6kdDPbuT7pbuNpgkbD6iL6rqTbmnQf3BybdN");
-
-pub mod errors;
-pub mod constants;
-
-use errors::ShadowError;
+declare_id!("7LnXF8pJgE2HWCmmTzMa6i9PTUWq2JUzUFhxPJAzrWSd");
 
 #[program]
 pub mod shadow_pool {
     use super::*;
 
-    /// Initialize a new privacy pool
     pub fn initialize(
         ctx: Context<Initialize>,
         denomination: u64,
@@ -34,7 +28,6 @@ pub mod shadow_pool {
         Ok(())
     }
 
-    /// Deposit funds into the privacy pool
     pub fn deposit(
         ctx: Context<Deposit>,
         commitment: [u8; 32],
@@ -44,31 +37,29 @@ pub mod shadow_pool {
         require!(pool.enabled, ShadowError::PoolInactive);
         require!(pool.current_index < 1_000_000, ShadowError::PoolFull);
 
-        // Transfer SOL from depositor to pool vault
-        let transfer_ix = system_program::Transfer {
-            from: ctx.accounts.depositor.to_account_info(),
-            to: ctx.accounts.vault.to_account_info(),
-        };
-        
+        let denomination = pool.denomination;
+        let pool_info = pool.to_account_info();
+
+        // Transfer SOL to the pool account itself (owned by program)
         system_program::transfer(
             CpiContext::new(
                 ctx.accounts.system_program.to_account_info(),
-                transfer_ix,
+                system_program::Transfer {
+                    from: ctx.accounts.depositor.to_account_info(),
+                    to: pool_info,
+                },
             ),
-            pool.denomination,
+            denomination,
         )?;
 
-        // Store commitment in nullifier account
         let nullifier = &mut ctx.accounts.nullifier;
         nullifier.commitment = commitment;
         nullifier.leaf_index = pool.current_index;
         nullifier.used = false;
 
-        // Update pool state
         pool.current_index += 1;
-        pool.total_deposited += pool.denomination;
+        pool.total_deposited += denomination;
 
-        // Simple merkle root update (MVP - just hash commitment with index)
         let mut hasher_input = [0u8; 36];
         hasher_input[..32].copy_from_slice(&commitment);
         hasher_input[32..36].copy_from_slice(&pool.current_index.to_le_bytes());
@@ -84,53 +75,50 @@ pub mod shadow_pool {
         Ok(())
     }
 
-    /// Withdraw funds from the privacy pool
     pub fn withdraw(
         ctx: Context<Withdraw>,
         nullifier_hash: [u8; 32],
         root: [u8; 32],
-        recipient: Pubkey,
+        _recipient: Pubkey,
         proof_a: [u8; 64],
         proof_b: [u8; 128],
         proof_c: [u8; 64],
     ) -> Result<()> {
-        let pool = &ctx.accounts.pool;
+        let pool = &mut ctx.accounts.pool;
         let nullifier = &mut ctx.accounts.nullifier;
         
         require!(pool.enabled, ShadowError::PoolInactive);
         require!(!nullifier.used, ShadowError::NullifierAlreadyUsed);
 
-        // MVP: Basic proof validation (non-zero)
         let proof_valid = proof_a.iter().any(|&b| b != 0) 
             && proof_b.iter().any(|&b| b != 0) 
             && proof_c.iter().any(|&b| b != 0);
         require!(proof_valid, ShadowError::InvalidProof);
 
-        // MVP: Accept if root matches current root
         require!(root == pool.merkle_root, ShadowError::InvalidMerkleRoot);
 
-        // Mark nullifier as used
         nullifier.used = true;
         nullifier.nullifier_hash = nullifier_hash;
 
-        // Calculate fee
         let fee = (pool.denomination as u128 * pool.fee_bps as u128 / 10000) as u64;
         let amount_after_fee = pool.denomination.saturating_sub(fee);
 
-        // Transfer from vault to recipient
-        **ctx.accounts.vault.to_account_info().try_borrow_mut_lamports()? -= amount_after_fee;
+        pool.total_withdrawn += pool.denomination;
+
+        // Transfer from pool account (owned by program) to recipient
+        **pool.to_account_info().try_borrow_mut_lamports()? -= amount_after_fee;
         **ctx.accounts.recipient.to_account_info().try_borrow_mut_lamports()? += amount_after_fee;
 
         // Transfer fee if any
         if fee > 0 {
-            **ctx.accounts.vault.to_account_info().try_borrow_mut_lamports()? -= fee;
+            **pool.to_account_info().try_borrow_mut_lamports()? -= fee;
             **ctx.accounts.fee_recipient.to_account_info().try_borrow_mut_lamports()? += fee;
         }
 
-        msg!("Withdrawal successful: {} lamports to {}", amount_after_fee, recipient);
+        msg!("Withdrawal successful: {} lamports", amount_after_fee);
         emit!(WithdrawEvent {
             nullifier_hash,
-            recipient,
+            recipient: ctx.accounts.recipient.key(),
             amount: amount_after_fee,
             timestamp: Clock::get()?.unix_timestamp,
         });
@@ -139,7 +127,6 @@ pub mod shadow_pool {
     }
 }
 
-// Simple hash function for MVP (not cryptographically secure - use Poseidon in production)
 fn simple_hash(data: &[u8]) -> [u8; 32] {
     use std::collections::hash_map::DefaultHasher;
     use std::hash::{Hash, Hasher};
@@ -160,8 +147,6 @@ fn simple_hash(data: &[u8]) -> [u8; 32] {
     result
 }
 
-// ============== ACCOUNTS ==============
-
 #[derive(Accounts)]
 #[instruction(denomination: u64)]
 pub struct Initialize<'info> {
@@ -173,14 +158,6 @@ pub struct Initialize<'info> {
         bump
     )]
     pub pool: Account<'info, PrivacyPool>,
-    
-    /// CHECK: Vault PDA for holding funds
-    #[account(
-        mut,
-        seeds = [b"vault", pool.key().as_ref()],
-        bump
-    )]
-    pub vault: AccountInfo<'info>,
     
     #[account(mut)]
     pub authority: Signer<'info>,
@@ -194,8 +171,7 @@ pub struct Deposit<'info> {
     #[account(
         mut,
         seeds = [b"privacy_pool", pool.denomination.to_le_bytes().as_ref()],
-        bump = pool.bump,
-        constraint = pool.enabled @ ShadowError::PoolInactive
+        bump = pool.bump
     )]
     pub pool: Account<'info, PrivacyPool>,
     
@@ -208,14 +184,6 @@ pub struct Deposit<'info> {
     )]
     pub nullifier: Account<'info, Nullifier>,
     
-    /// CHECK: Vault PDA
-    #[account(
-        mut,
-        seeds = [b"vault", pool.key().as_ref()],
-        bump
-    )]
-    pub vault: AccountInfo<'info>,
-    
     #[account(mut)]
     pub depositor: Signer<'info>,
     
@@ -223,9 +191,9 @@ pub struct Deposit<'info> {
 }
 
 #[derive(Accounts)]
-#[instruction(nullifier_hash: [u8; 32])]
 pub struct Withdraw<'info> {
     #[account(
+        mut,
         seeds = [b"privacy_pool", pool.denomination.to_le_bytes().as_ref()],
         bump = pool.bump,
         constraint = pool.enabled @ ShadowError::PoolInactive
@@ -240,14 +208,6 @@ pub struct Withdraw<'info> {
     )]
     pub nullifier: Account<'info, Nullifier>,
     
-    /// CHECK: Vault PDA
-    #[account(
-        mut,
-        seeds = [b"vault", pool.key().as_ref()],
-        bump
-    )]
-    pub vault: AccountInfo<'info>,
-    
     /// CHECK: Recipient address
     #[account(mut)]
     pub recipient: AccountInfo<'info>,
@@ -258,8 +218,6 @@ pub struct Withdraw<'info> {
     
     pub system_program: Program<'info, System>,
 }
-
-// ============== STATE ==============
 
 #[account]
 pub struct PrivacyPool {
@@ -291,8 +249,6 @@ impl Nullifier {
     pub const SIZE: usize = 32 + 32 + 4 + 1;
 }
 
-// ============== EVENTS ==============
-
 #[event]
 pub struct DepositEvent {
     pub commitment: [u8; 32],
@@ -306,4 +262,20 @@ pub struct WithdrawEvent {
     pub recipient: Pubkey,
     pub amount: u64,
     pub timestamp: i64,
+}
+
+#[error_code]
+pub enum ShadowError {
+    #[msg("Pool is inactive")]
+    PoolInactive,
+    #[msg("Pool is full")]
+    PoolFull,
+    #[msg("Nullifier already used")]
+    NullifierAlreadyUsed,
+    #[msg("Invalid proof")]
+    InvalidProof,
+    #[msg("Invalid merkle root")]
+    InvalidMerkleRoot,
+    #[msg("Unauthorized")]
+    Unauthorized,
 }
