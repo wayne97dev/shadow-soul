@@ -1,5 +1,5 @@
 import Head from 'next/head';
-import Layout from '@/components/Layout';
+import Layout from '../components/Layout';
 import { motion } from 'framer-motion';
 import { useState } from 'react';
 import { ChevronDown, Shield, Lock, Zap, HelpCircle } from 'lucide-react';
