@@ -16,3 +16,4 @@ target/
 sdk/node_modules/
 app/node_modules/
 circuits/build/
+circuits/build/*.ptau
