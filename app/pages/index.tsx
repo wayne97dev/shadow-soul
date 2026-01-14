@@ -117,13 +117,13 @@ export default function Home() {
 
         {/* Hero Section con Matrix Rain - SOLO QUI */}
         <section className="relative min-h-screen flex items-center justify-center overflow-hidden">
-          {/* Matrix Rain - solo in questa sezione */}
+          {/* Matrix Rain */}
           <div className="absolute inset-0">
             <MatrixRain />
           </div>
           
-          {/* Gradient fade at bottom to stop matrix */}
-          <div className="absolute bottom-0 left-0 right-0 h-48 bg-gradient-to-t from-[#08080c] via-[#08080c] to-transparent z-10" />
+          {/* Gradient fade - MOLTO più graduale */}
+          <div className="absolute bottom-0 left-0 right-0 h-96 bg-gradient-to-t from-[#08080c] via-[#08080c]/90 to-transparent z-10" />
           
           {/* Background gradient */}
           <div className="absolute inset-0 pointer-events-none">
@@ -143,10 +143,10 @@ export default function Home() {
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.6 }}
             >
-              Private transactions
+              Anonymous Transactions 
               <br />
               <span className="text-transparent bg-clip-text bg-gradient-to-r from-purple-400 via-violet-400 to-purple-400">
-                without compromise
+                Through Zero-Knowledge Proofs
               </span>
             </motion.h1>
             
@@ -174,9 +174,9 @@ export default function Home() {
               </Link>
             </motion.div>
 
-            {/* Stats */}
+            {/* Stats in BLACK BOXES with HOVER */}
             <motion.div 
-              className="flex items-center justify-center gap-12 mt-16"
+              className="flex items-center justify-center gap-4 mt-16"
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.6, delay: 0.3 }}
@@ -187,7 +187,10 @@ export default function Home() {
                 { value: '0.3%', label: 'Fee' },
                 { value: '4', label: 'Pool sizes' },
               ].map((stat, i) => (
-                <div key={i} className="text-center">
+                <div 
+                  key={i} 
+                  className="text-center px-8 py-5 rounded-xl bg-black/40 border border-white/5 hover:bg-black/70 transition-all duration-300 cursor-default"
+                >
                   <div className="text-2xl font-semibold">{stat.value}</div>
                   <div className="text-xs text-gray-500 mt-1">{stat.label}</div>
                 </div>
@@ -196,7 +199,7 @@ export default function Home() {
           </div>
         </section>
 
-        {/* RESTO DELLA PAGINA - SENZA MATRIX, SFONDO PULITO */}
+        {/* RESTO DELLA PAGINA - SENZA MATRIX */}
         <div className="relative bg-[#08080c]">
           
           {/* How it works */}
