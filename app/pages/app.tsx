@@ -126,19 +126,19 @@ export default function AppPage() {
       </Head>
 
       <div className="min-h-screen bg-[#08080c] text-white">
-        {/* Matrix Rain - limitato alla parte superiore */}
-        <div className="fixed inset-0 overflow-hidden pointer-events-none" style={{ maxHeight: '50vh' }}>
+        {/* Matrix Rain - CONTINUO su tutta la pagina */}
+        <div className="fixed inset-0 pointer-events-none">
           <MatrixRain />
-          <div className="absolute bottom-0 left-0 right-0 h-32 bg-gradient-to-t from-[#08080c] to-transparent" />
         </div>
         
+        {/* Purple glow */}
         <div className="fixed inset-0 pointer-events-none">
-          <div className="absolute top-0 left-1/4 w-[600px] h-[400px] bg-purple-600/8 rounded-full blur-[120px]" />
+          <div className="absolute top-1/4 left-1/2 -translate-x-1/2 w-[600px] h-[400px] bg-purple-600/10 rounded-full blur-[150px]" />
         </div>
 
         {/* Navigation */}
         <nav className="fixed top-0 left-0 right-0 z-50 border-b border-white/5 bg-[#08080c]/80 backdrop-blur-md">
-          <div className="max-w-6xl mx-auto px-6 py-3">
+          <div className="max-w-5xl mx-auto px-6 py-3">
             <div className="flex items-center justify-between">
               <Link href="/" className="flex items-center gap-2.5 hover:opacity-80 transition">
                 <ArrowLeft className="w-4 h-4 text-gray-400" />
@@ -146,7 +146,7 @@ export default function AppPage() {
                 <span className="text-base font-semibold tracking-tight">Shadow Soul</span>
               </Link>
               {mounted && (
-                <WalletMultiButton className="!bg-white/10 hover:!bg-white/15 !border !border-white/10 !rounded-lg !h-8 !px-3 !text-xs !font-medium" />
+                <WalletMultiButton className="!bg-transparent hover:!bg-white/10 !border !border-white/20 !rounded-lg !h-9 !px-4 !text-sm !font-normal" />
               )}
             </div>
           </div>
@@ -154,7 +154,7 @@ export default function AppPage() {
 
         <main className="relative z-10 max-w-3xl mx-auto px-6 pt-20 pb-12">
           {/* Tabs */}
-          <div className="flex gap-1 p-1 bg-white/[0.02] border border-white/5 rounded-lg mb-6 mt-4">
+          <div className="flex gap-1 p-1 bg-black/40 backdrop-blur-sm border border-white/5 rounded-lg mb-6 mt-4">
             {tabs.map((tab) => (
               <button
                 key={tab.id}
@@ -189,9 +189,9 @@ export default function AppPage() {
           </AnimatePresence>
         </main>
 
-        {/* Footer */}
-        <footer className="relative z-10 border-t border-white/5 py-6">
-          <div className="max-w-6xl mx-auto px-6 text-center text-xs text-gray-600">
+        {/* Footer - PIÙ SCURO */}
+        <footer className="relative z-10 border-t border-white/5 py-6 bg-black/60 backdrop-blur-sm">
+          <div className="max-w-5xl mx-auto px-6 text-center text-xs text-gray-500">
             Shadow Soul Protocol — Program: {PROGRAM_ID.toBase58().slice(0, 8)}...{PROGRAM_ID.toBase58().slice(-8)}
           </div>
         </footer>
@@ -445,7 +445,7 @@ function PrivacyPool() {
   return (
     <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }}>
       {/* Mode Toggle */}
-      <div className="flex gap-1 p-1 bg-white/[0.02] border border-white/5 rounded-lg mb-5">
+      <div className="flex gap-1 p-1 bg-black/40 backdrop-blur-sm border border-white/5 rounded-lg mb-5">
         <button onClick={() => setMode('deposit')} className={`flex-1 flex items-center justify-center gap-2 py-2 rounded-md text-sm font-medium transition ${mode === 'deposit' ? 'bg-white/10 text-white' : 'text-gray-400 hover:text-white'}`}>
           <ArrowDownToLine className="w-4 h-4" /> Deposit
         </button>
@@ -454,7 +454,7 @@ function PrivacyPool() {
         </button>
       </div>
 
-      <div className="p-6 rounded-xl bg-white/[0.02] border border-white/5">
+      <div className="p-6 rounded-xl bg-black/40 backdrop-blur-sm border border-white/5">
         {mode === 'deposit' ? (
           <>
             <h3 className="text-lg font-medium mb-5">Deposit SOL</h3>
@@ -467,7 +467,7 @@ function PrivacyPool() {
                     <button 
                       key={amt} 
                       onClick={() => setAmount(amt)} 
-                      className={`py-2.5 px-2 rounded-lg text-sm font-medium transition flex flex-col items-center ${amount === amt ? 'bg-purple-600 text-white' : 'bg-white/[0.02] text-gray-400 hover:text-white border border-white/5'}`}
+                      className={`py-2.5 px-2 rounded-lg text-sm font-medium transition flex flex-col items-center ${amount === amt ? 'bg-purple-600 text-white' : 'bg-black/40 text-gray-400 hover:text-white border border-white/5'}`}
                     >
                       <span>{amt} SOL</span>
                       <span className="text-xs opacity-60 mt-0.5">{stats?.anonymitySet || 0} dep</span>
@@ -491,7 +491,7 @@ function PrivacyPool() {
             {generatedNote && (
               <div className="mt-5 p-3 rounded-lg bg-green-500/10 border border-green-500/20">
                 <p className="text-xs font-medium text-green-400 mb-2">⚠️ SAVE THIS NOTE NOW - You need it to withdraw!</p>
-                <div className="flex items-center gap-2 bg-[#08080c] p-2 rounded-lg">
+                <div className="flex items-center gap-2 bg-black/40 p-2 rounded-lg">
                   <code className="text-xs text-green-300 flex-1 break-all">{generatedNote}</code>
                   <button onClick={copyNote} className="p-1.5 hover:bg-white/10 rounded transition">
                     {copied ? <Check className="w-4 h-4 text-green-400" /> : <Copy className="w-4 h-4 text-gray-400" />}
@@ -513,7 +513,7 @@ function PrivacyPool() {
               <label className="block text-xs text-gray-400 mb-2">Select Pool (must match your deposit)</label>
               <div className="grid grid-cols-4 gap-2">
                 {amounts.map((amt) => (
-                  <button key={amt} onClick={() => setWithdrawAmount(amt)} className={`py-2.5 rounded-lg text-sm font-medium transition ${withdrawAmount === amt ? 'bg-purple-600 text-white' : 'bg-white/[0.02] text-gray-400 hover:text-white border border-white/5'}`}>
+                  <button key={amt} onClick={() => setWithdrawAmount(amt)} className={`py-2.5 rounded-lg text-sm font-medium transition ${withdrawAmount === amt ? 'bg-purple-600 text-white' : 'bg-black/40 text-gray-400 hover:text-white border border-white/5'}`}>
                     {amt} SOL
                   </button>
                 ))}
@@ -526,7 +526,7 @@ function PrivacyPool() {
                 value={secretNote} 
                 onChange={(e) => setSecretNote(e.target.value)} 
                 placeholder="shadow-soul-..." 
-                className="w-full p-3 rounded-lg bg-[#08080c] border border-white/5 focus:border-purple-500/50 focus:outline-none resize-none h-20 font-mono text-xs" 
+                className="w-full p-3 rounded-lg bg-black/40 border border-white/5 focus:border-purple-500/50 focus:outline-none resize-none h-20 font-mono text-xs" 
               />
             </div>
 
@@ -537,7 +537,7 @@ function PrivacyPool() {
                 value={recipient} 
                 onChange={(e) => setRecipient(e.target.value)} 
                 placeholder="Solana wallet address" 
-                className="w-full p-3 rounded-lg bg-[#08080c] border border-white/5 focus:border-purple-500/50 focus:outline-none font-mono text-xs" 
+                className="w-full p-3 rounded-lg bg-black/40 border border-white/5 focus:border-purple-500/50 focus:outline-none font-mono text-xs" 
               />
               <p className="text-xs text-gray-600 mt-1">Default: your wallet. Change for private withdrawal.</p>
             </div>
@@ -559,28 +559,28 @@ function PrivacyPool() {
 
       {/* Pool Stats */}
       <div className="mt-5 grid grid-cols-3 gap-3">
-        <div className="p-4 rounded-lg bg-white/[0.02] border border-white/5 text-center">
+        <div className="p-4 rounded-lg bg-black/40 backdrop-blur-sm border border-white/5 text-center">
           <p className="text-lg font-semibold text-purple-400">{currentStats.totalDeposited} SOL</p>
           <p className="text-xs text-gray-500 mt-0.5">Pool Balance</p>
         </div>
-        <div className="p-4 rounded-lg bg-white/[0.02] border border-white/5 text-center">
+        <div className="p-4 rounded-lg bg-black/40 backdrop-blur-sm border border-white/5 text-center">
           <p className="text-lg font-semibold text-purple-400">{currentStats.deposits}</p>
           <p className="text-xs text-gray-500 mt-0.5">Total Deposits</p>
         </div>
-        <div className="p-4 rounded-lg bg-white/[0.02] border border-white/5 text-center">
+        <div className="p-4 rounded-lg bg-black/40 backdrop-blur-sm border border-white/5 text-center">
           <p className="text-lg font-semibold text-purple-400">{currentStats.anonymitySet}</p>
           <p className="text-xs text-gray-500 mt-0.5">Anonymity Set</p>
         </div>
       </div>
 
       {/* All Pools Overview */}
-      <div className="mt-4 p-4 rounded-lg bg-white/[0.02] border border-white/5">
+      <div className="mt-4 p-4 rounded-lg bg-black/40 backdrop-blur-sm border border-white/5">
         <h4 className="text-xs font-medium text-gray-400 mb-3">All Pools</h4>
         <div className="grid grid-cols-4 gap-2">
           {amounts.map((amt) => {
             const stats = allPoolStats[amt];
             return (
-              <div key={amt} className="text-center p-2 rounded bg-[#08080c] border border-white/5">
+              <div key={amt} className="text-center p-2 rounded bg-black/40 border border-white/5">
                 <p className="text-sm font-medium text-white">{amt} SOL</p>
                 <p className="text-xs text-gray-600">{stats?.totalDeposited || '0'} SOL</p>
                 <p className="text-xs text-purple-400">{stats?.anonymitySet || 0} dep</p>
@@ -595,7 +595,7 @@ function PrivacyPool() {
 
 function StealthAddress() {
   return (
-    <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }} className="p-8 rounded-xl bg-white/[0.02] border border-white/5 text-center">
+    <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }} className="p-8 rounded-xl bg-black/40 backdrop-blur-sm border border-white/5 text-center">
       <Eye className="w-12 h-12 mx-auto mb-4 text-purple-400" />
       <h3 className="text-lg font-medium mb-2">Stealth Addresses</h3>
       <p className="text-sm text-gray-500">Coming soon — Generate one-time receiving addresses</p>
@@ -605,7 +605,7 @@ function StealthAddress() {
 
 function ZKIdentity() {
   return (
-    <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }} className="p-8 rounded-xl bg-white/[0.02] border border-white/5 text-center">
+    <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }} className="p-8 rounded-xl bg-black/40 backdrop-blur-sm border border-white/5 text-center">
       <Fingerprint className="w-12 h-12 mx-auto mb-4 text-purple-400" />
       <h3 className="text-lg font-medium mb-2">ZK Identity</h3>
       <p className="text-sm text-gray-500">Coming soon — Prove humanity without revealing identity</p>
